@@ -18,6 +18,7 @@ Run a series of checks against compiled job XML.
 import argparse
 import os
 import sys
+from typing import Optional
 from xml.etree import ElementTree
 
 
@@ -27,7 +28,7 @@ class Linter(object):
     def __init__(self, tree: ElementTree) -> None:
         self._tree = tree
 
-    def actual_check(self) -> bool:
+    def actual_check(self) -> (bool, Optional[str]):
         """This is where the actual check should happen."""
         raise NotImplementedError
 
@@ -39,8 +40,10 @@ class Linter(object):
     def check(self) -> bool:
         """Wrap actual_check in nice output."""
         print(' ... {}:'.format(self.description), end='')
-        result = self.actual_check()
+        result, text = self.actual_check()
         print(' OK' if result else ' FAILURE')
+        if text:
+            print('     {}'.format(text))
         return result
 
 
@@ -50,9 +53,9 @@ class EnsureTimestamps(Linter):
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
-    def actual_check(self) -> bool:
+    def actual_check(self) -> (bool, Optional[str]):
         """Check that the TimestamperBuildWrapper element is present."""
-        return self._tree.find(self._xpath) is not None
+        return self._tree.find(self._xpath) is not None, None
 
 
 def lint_job_xml(tree: ElementTree) -> bool:
