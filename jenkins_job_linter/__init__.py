@@ -28,7 +28,7 @@ class Linter(object):
     def __init__(self, tree: ElementTree) -> None:
         self._tree = tree
 
-    def actual_check(self) -> (bool, Optional[str]):
+    def actual_check(self) -> (Optional[bool], Optional[str]):
         """This is where the actual check should happen."""
         raise NotImplementedError
 
@@ -41,7 +41,10 @@ class Linter(object):
         """Wrap actual_check in nice output."""
         print(' ... {}:'.format(self.description), end='')
         result, text = self.actual_check()
-        print(' OK' if result else ' FAILURE')
+        if result is None:
+            print(' N/A')
+        else:
+            print(' OK' if result else ' FAILURE')
         if text:
             print('     {}'.format(text))
         return result
@@ -62,9 +65,11 @@ class CheckShebang(Linter):
 
     description = 'checking shebang of shell builders'
 
-    def actual_check(self) -> (bool, Optional[str]):
+    def actual_check(self) -> (Optional[bool], Optional[str]):
         shell_parts = self._tree.findall(
             './builders/hudson.tasks.Shell/command')
+        if not shell_parts:
+            return None, None
         for shell_part in shell_parts:
             script = shell_part.text
             first_line = script.splitlines()[0]
