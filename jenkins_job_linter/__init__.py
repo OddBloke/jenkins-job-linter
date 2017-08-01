@@ -58,9 +58,24 @@ class EnsureTimestamps(Linter):
         return self._tree.find(self._xpath) is not None, None
 
 
+class CheckShebang(Linter):
+
+    description = 'checking shebang of shell builders'
+
+    def actual_check(self) -> (bool, Optional[str]):
+        shell_parts = self._tree.findall(
+            './builders/hudson.tasks.Shell/command')
+        for shell_part in shell_parts:
+            script = shell_part.text
+            first_line = script.splitlines()[0]
+            if first_line.startswith('#!') and first_line != '#!/bin/sh -eux':
+                return False, 'Shebang is {}'.format(first_line)
+        return True, None
+
+
 def lint_job_xml(tree: ElementTree) -> bool:
     """Run all the linters against an XML tree."""
-    linters = [EnsureTimestamps]
+    linters = [CheckShebang, EnsureTimestamps]
     results = [linter(tree).check() for linter in linters]
     return all(results)
 
