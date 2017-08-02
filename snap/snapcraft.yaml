@@ -1,0 +1,19 @@
+name: jenkins-job-linter
+version: '0.1.3'
+summary: Perform linting checks against a directory of Jenkins job XML
+description: |
+  Given the output of jenkins-job-builder's test command, ensure that the
+  produced jobs conform to certain rules.
+
+grade: stable
+confinement: strict
+
+parts:
+  my-part:
+    plugin: python
+
+apps:
+    jenkins-job-linter:
+        command: bin/jenkins-job-linter
+        plugs:
+            - home
