@@ -8,6 +8,7 @@ env:
  - TOX_ENV=py36
  - TOX_ENV=lint
  - TOX_ENV=mypy
+ - TOX_ENV=codecov
 install:
  - pip install tox
 script:
