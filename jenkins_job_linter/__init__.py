@@ -18,17 +18,17 @@ Run a series of checks against compiled job XML.
 import argparse
 import os
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 from xml.etree import ElementTree
 
 
 class Linter(object):
     """A super-class capturing the common linting pattern."""
 
-    def __init__(self, tree: ElementTree) -> None:
+    def __init__(self, tree: ElementTree.ElementTree) -> None:
         self._tree = tree
 
-    def actual_check(self) -> (Optional[bool], Optional[str]):
+    def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
         """This is where the actual check should happen."""
         raise NotImplementedError
 
@@ -43,6 +43,7 @@ class Linter(object):
         result, text = self.actual_check()
         if result is None:
             print(' N/A')
+            result = True
         else:
             print(' OK' if result else ' FAILURE')
         if text:
@@ -56,7 +57,7 @@ class EnsureTimestamps(Linter):
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
-    def actual_check(self) -> (bool, Optional[str]):
+    def actual_check(self) -> Tuple[bool, Optional[str]]:
         """Check that the TimestamperBuildWrapper element is present."""
         return self._tree.find(self._xpath) is not None, None
 
@@ -65,7 +66,7 @@ class CheckShebang(Linter):
 
     description = 'checking shebang of shell builders'
 
-    def actual_check(self) -> (Optional[bool], Optional[str]):
+    def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
         shell_parts = self._tree.findall(
             './builders/hudson.tasks.Shell/command')
         if not shell_parts:
@@ -78,7 +79,7 @@ class CheckShebang(Linter):
         return True, None
 
 
-def lint_job_xml(tree: ElementTree) -> bool:
+def lint_job_xml(tree: ElementTree.ElementTree) -> bool:
     """Run all the linters against an XML tree."""
     linters = [CheckShebang, EnsureTimestamps]
     results = [linter(tree).check() for linter in linters]
