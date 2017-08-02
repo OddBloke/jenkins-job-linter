@@ -5,7 +5,7 @@ import pytest
 
 from jenkins_job_linter import (
     CheckShebang, EnsureTimestamps, Linter, lint_job_xml,
-    lint_jobs_from_directory)
+    lint_jobs_from_directory, main)
 
 
 class TestCheckShebang(object):
@@ -132,3 +132,26 @@ class TestLintJobsFromDirectory(object):
             os.path.join(dirname, f) for f in listdir_mock.return_value)
         assert expected_paths == set(
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
+
+
+class TestMain(object):
+
+    def test_argument_passed_through(self, mocker):
+        mocker.patch('jenkins_job_linter.sys.exit')
+        dirname = 'some_dir'
+        mocker.patch('sys.argv', ['script_name', dirname])
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_directory')
+        main()
+        assert 1 == lint_jobs_mock.call_count
+        assert mocker.call(dirname) == lint_jobs_mock.call_args
+
+    @pytest.mark.parametrize('return_value,exit_code', ((False, 1), (True, 0)))
+    def test_exit_code(self, mocker, exit_code, return_value):
+        mocker.patch('sys.argv', ['script_name', 'some_dir'])
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_directory')
+        lint_jobs_mock.return_value = return_value
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exit_code == exc_info.value.code
