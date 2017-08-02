@@ -15,12 +15,13 @@
 """
 Run a series of checks against compiled job XML.
 """
-import argparse
 import os
 import re
 import sys
 from typing import Optional, Tuple
 from xml.etree import ElementTree
+
+import click
 
 
 class Linter(object):
@@ -108,12 +109,11 @@ def lint_jobs_from_directory(compiled_job_directory: str) -> bool:
     return success
 
 
-def main() -> None:
+@click.command()
+@click.argument('compiled_job_directory')
+def main(compiled_job_directory) -> None:
     """Take a directory of Jenkins job XML and run some checks against it."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument('compiled_job_directory')
-    args = parser.parse_args()
-    result = lint_jobs_from_directory(args.compiled_job_directory)
+    result = lint_jobs_from_directory(compiled_job_directory)
     if not result:
         sys.exit(1)
     sys.exit(0)
