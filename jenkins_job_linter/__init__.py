@@ -110,7 +110,8 @@ def lint_jobs_from_directory(compiled_job_directory: str) -> bool:
 
 
 @click.command()
-@click.argument('compiled_job_directory')
+@click.argument('compiled_job_directory',
+                type=click.Path(exists=True, file_okay=False))
 def main(compiled_job_directory) -> None:
     """Take a directory of Jenkins job XML and run some checks against it."""
     result = lint_jobs_from_directory(compiled_job_directory)
