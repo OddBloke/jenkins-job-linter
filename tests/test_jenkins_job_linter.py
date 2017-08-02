@@ -70,6 +70,18 @@ class TestLinter(object):
         linter._mock_result = mocker.sentinel.result, None
         assert mocker.sentinel.result == linter.check()
 
+    def test_none_result_returned_as_success(self):
+        tree = ElementTree.fromstring('<project/>')
+        linter = self.LintTestSubclass(tree)
+        linter._mock_result = None, None
+        assert linter.check() is True
+
+    def test_linters_can_return_text(self):
+        tree = ElementTree.fromstring('<project/>')
+        linter = self.LintTestSubclass(tree)
+        linter._mock_result = None, "some text"
+        linter.check()
+
 
 class TestLintJobXML(object):
 
