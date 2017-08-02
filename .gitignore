@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# snapcraft
+/*.snap
+/*_source.tar.bz2
