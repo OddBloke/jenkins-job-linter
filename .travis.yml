@@ -1,0 +1,14 @@
+language: python
+dist: trusty
+sudo: disabled
+
+python: 3.6
+env:
+ - TOX_ENV=py35
+ - TOX_ENV=py36
+ - TOX_ENV=lint
+ - TOX_ENV=mypy
+install:
+ - pip install tox
+script:
+ - tox -e $TOX_ENV
