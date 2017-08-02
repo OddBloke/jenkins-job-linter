@@ -79,10 +79,12 @@ class CheckShebang(Linter):
         return True, None
 
 
+LINTERS = [CheckShebang, EnsureTimestamps]
+
+
 def lint_job_xml(tree: ElementTree.ElementTree) -> bool:
     """Run all the linters against an XML tree."""
-    linters = [CheckShebang, EnsureTimestamps]
-    results = [linter(tree).check() for linter in linters]
+    results = [linter(tree).check() for linter in LINTERS]
     return all(results)
 
 
