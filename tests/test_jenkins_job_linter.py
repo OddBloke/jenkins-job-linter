@@ -12,6 +12,8 @@ class TestCheckShebang(object):
         (True, '#!/bin/sh -eux'),
         (True, 'no-shebang-is-fine'),
         (False, '#!/bin/sh -lolno'),
+        (False, '#!/bin/zsh'),
+        (True, '#!/usr/bin/env python'),
     ))
     def test_project_with_shell(self, expected, shell_string):
         xml_template = '''\

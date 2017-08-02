@@ -17,6 +17,7 @@ Run a series of checks against compiled job XML.
 """
 import argparse
 import os
+import re
 import sys
 from typing import Optional, Tuple
 from xml.etree import ElementTree
@@ -74,7 +75,15 @@ class CheckShebang(Linter):
         for shell_part in shell_parts:
             script = shell_part.text
             first_line = script.splitlines()[0]
-            if first_line.startswith('#!') and first_line != '#!/bin/sh -eux':
+            if not first_line.startswith('#!'):
+                # This will use Jenkins' default
+                continue
+            if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
+                # This has a non-shell shebang
+                continue
+            line_parts = first_line.split(' ')
+            if (len(line_parts) < 2
+                    or re.match(r'-[eux]+', line_parts[1]) is None):
                 return False, 'Shebang is {}'.format(first_line)
         return True, None
 
