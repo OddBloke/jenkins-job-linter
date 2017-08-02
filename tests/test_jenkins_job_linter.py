@@ -1,9 +1,11 @@
+import os
 from xml.etree import ElementTree
 
 import pytest
 
 from jenkins_job_linter import (
-    CheckShebang, EnsureTimestamps, Linter, lint_job_xml)
+    CheckShebang, EnsureTimestamps, Linter, lint_job_xml,
+    lint_jobs_from_directory)
 
 
 class TestCheckShebang(object):
@@ -93,3 +95,40 @@ class TestLintJobXML(object):
             linter_mocks.append(mock)
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
         assert lint_job_xml(mocker.sentinel.tree) is expected
+
+
+class TestLintJobsFromDirectory(object):
+
+    def test_empty_directory(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = []
+        assert lint_jobs_from_directory('dir')
+
+    def test_parsed_tree_passed_to_lint_job_xml(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dir')
+        assert len(listdir_mock.return_value) == lint_job_xml_mock.call_count
+        for call_args in lint_job_xml_mock.call_args_list:
+            assert mocker.call(et_parse_mock.return_value) == call_args
+
+    def test_passed_directory_is_used_for_listing(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = []
+        dirname = 'dir'
+        lint_jobs_from_directory(dirname)
+        assert mocker.call(dirname) == listdir_mock.call_args
+
+    def test_constructed_paths_used_for_parsing(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
+        mocker.patch('jenkins_job_linter.lint_job_xml')
+        dirname = 'dir'
+        lint_jobs_from_directory(dirname)
+        expected_paths = set(
+            os.path.join(dirname, f) for f in listdir_mock.return_value)
+        assert expected_paths == set(
+            [call_args[0][0] for call_args in et_parse_mock.call_args_list])
