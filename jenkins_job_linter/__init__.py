@@ -31,12 +31,12 @@ class Linter(object):
 
     def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
         """This is where the actual check should happen."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: nocover
 
     @property
     def description(self) -> str:
         """The output-friendly description of what this Linter does."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: nocover
 
     def check(self) -> bool:
         """Wrap actual_check in nice output."""
@@ -120,4 +120,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    main()  # pragma: nocover
