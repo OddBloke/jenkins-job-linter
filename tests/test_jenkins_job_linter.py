@@ -5,8 +5,13 @@ import pytest
 from click.testing import CliRunner
 
 from jenkins_job_linter import (
-    CheckShebang, EnsureTimestamps, Linter, lint_job_xml,
-    lint_jobs_from_directory, main)
+    CheckShebang,
+    EnsureTimestamps,
+    Linter,
+    lint_job_xml,
+    lint_jobs_from_directory,
+    main,
+)
 
 
 class TestCheckShebang(object):
