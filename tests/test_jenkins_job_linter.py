@@ -155,7 +155,9 @@ class TestMain(object):
         lint_jobs_mock = mocker.patch(
             'jenkins_job_linter.lint_jobs_from_directory')
 
-        runner.invoke(main, [dirname])
+        with runner.isolated_filesystem():
+            os.mkdir(dirname)
+            runner.invoke(main, [dirname])
 
         assert 1 == lint_jobs_mock.call_count
         assert mocker.call(dirname) == lint_jobs_mock.call_args
@@ -166,5 +168,27 @@ class TestMain(object):
         lint_jobs_mock = mocker.patch(
             'jenkins_job_linter.lint_jobs_from_directory')
         lint_jobs_mock.return_value = return_value
-        result = runner.invoke(main, ['dirname'])
+        dirname = 'some_dir'
+        with runner.isolated_filesystem():
+            os.mkdir(dirname)
+            result = runner.invoke(main, [dirname])
         assert exit_code == result.exit_code
+
+    @pytest.mark.parametrize('func', [
+        # Non-existent directory
+        lambda dirname: None,
+        # Directory is a file
+        lambda dirname: open(dirname, 'a').close(),
+        # Directory isn't readable ("or" because os.mkdir returns None)
+        lambda dirname: os.mkdir(dirname) or os.chmod(dirname, 0o000),
+    ])
+    def test_bad_directory_input(self, func, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_directory')
+        dirname = 'dirname'
+        with runner.isolated_filesystem():
+            func(dirname)
+            result = runner.invoke(main, [dirname])
+        assert result.exit_code != 0
+        assert lint_jobs_mock.call_count == 0
