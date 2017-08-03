@@ -70,6 +70,8 @@ class CheckShebang(Linter):
             return None, None
         for shell_part in shell_parts:
             script = shell_part.text
+            if script is None:
+                continue
             first_line = script.splitlines()[0]
             if not first_line.startswith('#!'):
                 # This will use Jenkins' default

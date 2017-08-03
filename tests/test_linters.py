@@ -13,6 +13,7 @@ class TestCheckShebang(object):
         (False, '#!/bin/sh -lolno'),
         (False, '#!/bin/zsh'),
         (True, '#!/usr/bin/env python'),
+        (True, ''),
     ))
     def test_project_with_shell(self, expected, shell_string):
         xml_template = '''\
