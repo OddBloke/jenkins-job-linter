@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-A collection of linters for Jenkins job XML.
-"""
+"""A collection of linters for Jenkins job XML."""
 import re
 from configparser import ConfigParser
 from typing import Optional, Tuple
@@ -27,16 +25,24 @@ class Linter(object):
 
     def __init__(self, tree: ElementTree.ElementTree,
                  config: ConfigParser) -> None:
+        """
+        Create an instance of a Linter.
+
+        :param tree:
+            A Jenkins job XML file parsed in to an ElementTree.
+        :param config:
+            The configuration for this linting run.
+        """
         self._tree = tree
         self._config = config
 
     def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
-        """This is where the actual check should happen."""
+        """Perform the actual linting check."""
         raise NotImplementedError  # pragma: nocover
 
     @property
     def description(self) -> str:
-        """The output-friendly description of what this Linter does."""
+        """Output-friendly description of what this Linter does."""
         raise NotImplementedError  # pragma: nocover
 
     def check(self) -> bool:
@@ -54,6 +60,7 @@ class Linter(object):
 
 
 class EnsureTimestamps(Linter):
+    """Ensure that a job is configured with timestamp output."""
 
     description = 'checking for timestamps'
     _xpath = (
@@ -65,10 +72,19 @@ class EnsureTimestamps(Linter):
 
 
 class CheckShebang(Linter):
+    """
+    Ensure that shell builders in a job have an appropriate shebang.
+
+    Specifically, ensure that those with a shell shebang call the shell with
+    -eux.
+
+    Shell builders with no shebang or a non-shell shebang are skipped.
+    """
 
     description = 'checking shebang of shell builders'
 
     def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
+        """Check shell builders for an appropriate shebang."""
         shell_parts = self._tree.findall(
             './builders/hudson.tasks.Shell/command')
         if not shell_parts:
