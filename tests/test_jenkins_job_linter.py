@@ -11,7 +11,7 @@ class TestLintJobXML(object):
     def test_all_linters_called_with_tree(self, mocker):
         linter_mocks = [mocker.Mock() for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
-        lint_job_xml(mocker.sentinel.tree)
+        lint_job_xml(mocker.sentinel.tree, mocker.MagicMock())
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
             assert linter_mock.call_args == mocker.call(mocker.sentinel.tree)
@@ -29,7 +29,8 @@ class TestLintJobXML(object):
             mock.return_value.check.return_value = result
             linter_mocks.append(mock)
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
-        assert lint_job_xml(mocker.sentinel.tree) is expected
+        assert lint_job_xml(mocker.sentinel.tree,
+                            mocker.MagicMock()) is expected
 
 
 class TestLintJobsFromDirectory(object):
@@ -39,15 +40,17 @@ class TestLintJobsFromDirectory(object):
         listdir_mock.return_value = []
         assert lint_jobs_from_directory('dir', mocker.MagicMock())
 
-    def test_parsed_tree_passed_to_lint_job_xml(self, mocker):
+    def test_tree_and_config_passed_to_lint_job_xml(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = ['some', 'files']
         et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
-        lint_jobs_from_directory('dir', mocker.MagicMock())
+        config_mock = mocker.MagicMock()
+        lint_jobs_from_directory('dir', config_mock)
         assert len(listdir_mock.return_value) == lint_job_xml_mock.call_count
         for call_args in lint_job_xml_mock.call_args_list:
-            assert mocker.call(et_parse_mock.return_value) == call_args
+            assert mocker.call(et_parse_mock.return_value,
+                               config_mock) == call_args
 
     def test_passed_directory_is_used_for_listing(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
