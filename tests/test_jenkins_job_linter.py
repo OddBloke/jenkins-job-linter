@@ -134,3 +134,24 @@ class TestMain(object):
             result = runner.invoke(main, [dirname])
         assert result.exit_code != 0
         assert lint_jobs_mock.call_count == 0
+
+    @pytest.mark.parametrize('func', [
+        # Non-existent conf file
+        lambda conf: None,
+        # Conf file is a directory
+        lambda conf: os.mkdir(conf),
+        # File isn't readable ("or" because .close() returns None)
+        lambda conf: open(conf, 'a').close() or os.chmod(conf, 0o000),
+    ])
+    def test_bad_config_input(self, func, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_directory')
+        dirname = 'dirname'
+        conf = 'conf.ini'
+        with runner.isolated_filesystem():
+            os.mkdir(dirname)
+            func(conf)
+            result = runner.invoke(main, [dirname, '--conf', conf])
+        assert result.exit_code != 0
+        assert lint_jobs_mock.call_count == 0

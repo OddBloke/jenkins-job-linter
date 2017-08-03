@@ -47,7 +47,7 @@ def lint_jobs_from_directory(compiled_job_directory: str,
 @click.command()
 @click.argument('compiled_job_directory',
                 type=click.Path(exists=True, file_okay=False))
-@click.option('--conf')
+@click.option('--conf', type=click.Path(exists=True, dir_okay=False))
 def main(compiled_job_directory: str, conf: Optional[str] = None) -> None:
     """Take a directory of Jenkins job XML and run some checks against it."""
     config = ConfigParser()
