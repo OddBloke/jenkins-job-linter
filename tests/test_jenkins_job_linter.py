@@ -37,14 +37,14 @@ class TestLintJobsFromDirectory(object):
     def test_empty_directory(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = []
-        assert lint_jobs_from_directory('dir')
+        assert lint_jobs_from_directory('dir', mocker.MagicMock())
 
     def test_parsed_tree_passed_to_lint_job_xml(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = ['some', 'files']
         et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
-        lint_jobs_from_directory('dir')
+        lint_jobs_from_directory('dir', mocker.MagicMock())
         assert len(listdir_mock.return_value) == lint_job_xml_mock.call_count
         for call_args in lint_job_xml_mock.call_args_list:
             assert mocker.call(et_parse_mock.return_value) == call_args
@@ -53,7 +53,7 @@ class TestLintJobsFromDirectory(object):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = []
         dirname = 'dir'
-        lint_jobs_from_directory(dirname)
+        lint_jobs_from_directory(dirname, mocker.MagicMock())
         assert mocker.call(dirname) == listdir_mock.call_args
 
     def test_constructed_paths_used_for_parsing(self, mocker):
@@ -62,7 +62,7 @@ class TestLintJobsFromDirectory(object):
         et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
         mocker.patch('jenkins_job_linter.lint_job_xml')
         dirname = 'dir'
-        lint_jobs_from_directory(dirname)
+        lint_jobs_from_directory(dirname, mocker.MagicMock())
         expected_paths = set(
             os.path.join(dirname, f) for f in listdir_mock.return_value)
         assert expected_paths == set(
@@ -82,7 +82,23 @@ class TestMain(object):
             runner.invoke(main, [dirname])
 
         assert 1 == lint_jobs_mock.call_count
-        assert mocker.call(dirname) == lint_jobs_mock.call_args
+        assert mocker.call(dirname, mocker.ANY) == lint_jobs_mock.call_args
+
+    def test_config_parsed_and_passed(self, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_directory')
+        dirname = 'dirname'
+        config = '[job_linter]\nkey=value'
+        with runner.isolated_filesystem():
+            os.mkdir(dirname)
+            with open('config.ini', 'w') as config_ini:
+                config_ini.write(config)
+            runner.invoke(main, [dirname, '--conf', 'config.ini'])
+
+        assert 1 == lint_jobs_mock.call_count
+        config = lint_jobs_mock.call_args[0][1]
+        assert config['job_linter']['key'] == 'value'
 
     @pytest.mark.parametrize('return_value,exit_code', ((False, 1), (True, 0)))
     def test_exit_code(self, mocker, exit_code, return_value):

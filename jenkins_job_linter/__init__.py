@@ -17,6 +17,8 @@ Run a series of checks against compiled job XML.
 """
 import os
 import sys
+from configparser import ConfigParser
+from typing import Optional
 from xml.etree import ElementTree
 
 import click
@@ -30,7 +32,8 @@ def lint_job_xml(tree: ElementTree.ElementTree) -> bool:
     return all(results)
 
 
-def lint_jobs_from_directory(compiled_job_directory: str) -> bool:
+def lint_jobs_from_directory(compiled_job_directory: str,
+                             config: ConfigParser) -> bool:
     """Load jobs from a directory and run linters against each one."""
     success = True
     for job_file in os.listdir(compiled_job_directory):
@@ -44,9 +47,13 @@ def lint_jobs_from_directory(compiled_job_directory: str) -> bool:
 @click.command()
 @click.argument('compiled_job_directory',
                 type=click.Path(exists=True, file_okay=False))
-def main(compiled_job_directory: str) -> None:
+@click.option('--conf')
+def main(compiled_job_directory: str, conf: Optional[str] = None) -> None:
     """Take a directory of Jenkins job XML and run some checks against it."""
-    result = lint_jobs_from_directory(compiled_job_directory)
+    config = ConfigParser()
+    if conf is not None:
+        config.read(conf)
+    result = lint_jobs_from_directory(compiled_job_directory, config)
     if not result:
         sys.exit(1)
     sys.exit(0)
