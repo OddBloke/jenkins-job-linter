@@ -102,7 +102,7 @@ class CheckShebang(Linter):
                 continue
             line_parts = first_line.split(' ')
             if (len(line_parts) < 2
-                    or re.match(r'-[eux]+', line_parts[1]) is None):
+                    or re.match(r'-[eux]{3}', line_parts[1]) is None):
                 return False, 'Shebang is {}'.format(first_line)
         return True, None
 

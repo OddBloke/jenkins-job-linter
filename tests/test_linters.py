@@ -1,3 +1,4 @@
+import itertools
 from xml.etree import ElementTree
 
 import pytest
@@ -7,14 +8,16 @@ from jenkins_job_linter.linters import CheckShebang, EnsureTimestamps, Linter
 
 class TestCheckShebang(object):
 
-    @pytest.mark.parametrize('expected,shell_string', (
+    @pytest.mark.parametrize('expected,shell_string', [
         (True, '#!/bin/sh -eux'),
         (True, 'no-shebang-is-fine'),
         (False, '#!/bin/sh -lolno'),
         (False, '#!/bin/zsh'),
         (True, '#!/usr/bin/env python'),
         (True, ''),
-    ))
+    ] + [(False, '#!/bin/sh -{}'.format(''.join(args)))
+         for args in itertools.combinations('eux', 2)]
+    )
     def test_project_with_shell(self, expected, shell_string):
         xml_template = '''\
         <project>
