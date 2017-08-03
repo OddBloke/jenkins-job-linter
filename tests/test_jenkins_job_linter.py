@@ -8,13 +8,14 @@ from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 
 class TestLintJobXML(object):
 
-    def test_all_linters_called_with_tree(self, mocker):
+    def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [mocker.Mock() for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
-        lint_job_xml(mocker.sentinel.tree, mocker.MagicMock())
+        lint_job_xml(mocker.sentinel.tree, mocker.sentinel.config)
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
-            assert linter_mock.call_args == mocker.call(mocker.sentinel.tree)
+            assert linter_mock.call_args == mocker.call(mocker.sentinel.tree,
+                                                        mocker.sentinel.config)
 
     @pytest.mark.parametrize('expected,results', (
         (True, (True,)),

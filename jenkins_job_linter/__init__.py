@@ -28,7 +28,7 @@ from jenkins_job_linter.linters import LINTERS
 
 def lint_job_xml(tree: ElementTree.ElementTree, config: ConfigParser) -> bool:
     """Run all the linters against an XML tree."""
-    results = [linter(tree).check() for linter in LINTERS]
+    results = [linter(tree, config).check() for linter in LINTERS]
     return all(results)
 
 

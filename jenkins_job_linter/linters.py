@@ -15,6 +15,7 @@
 A collection of linters for Jenkins job XML.
 """
 import re
+from configparser import ConfigParser
 from typing import Optional, Tuple
 from xml.etree import ElementTree
 
@@ -24,8 +25,10 @@ from stevedore.extension import ExtensionManager
 class Linter(object):
     """A super-class capturing the common linting pattern."""
 
-    def __init__(self, tree: ElementTree.ElementTree) -> None:
+    def __init__(self, tree: ElementTree.ElementTree,
+                 config: ConfigParser) -> None:
         self._tree = tree
+        self._config = config
 
     def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
         """This is where the actual check should happen."""

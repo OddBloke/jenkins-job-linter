@@ -26,13 +26,13 @@ class TestCheckShebang(object):
         </project>'''
         xml_string = xml_template.format(shell_string)
         tree = ElementTree.fromstring(xml_string)
-        linter = CheckShebang(tree)
+        linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
         assert result is expected
 
     def test_project_with_no_shell_part_skipped(self):
         tree = ElementTree.fromstring('<project/>')
-        linter = CheckShebang(tree)
+        linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
         assert result is None
 
@@ -48,7 +48,7 @@ class TestEnsureTimestamps(object):
                   </project>''')))
     def test_linter(self, expected, xml_string):
         tree = ElementTree.fromstring(xml_string)
-        linter = EnsureTimestamps(tree)
+        linter = EnsureTimestamps(tree, {})
         result, _ = linter.actual_check()
         assert result is expected
 
@@ -60,22 +60,22 @@ class TestLinter(object):
         description = 'test description'
 
         def actual_check(self):
-            return self._mock_result
+            return self._config['_mock_result']
 
     def test_actual_check_result_passed_through(self, mocker):
         tree = ElementTree.fromstring('<project/>')
-        linter = self.LintTestSubclass(tree)
-        linter._mock_result = mocker.sentinel.result, None
-        assert mocker.sentinel.result == linter.check()
+        mock_result = mocker.sentinel.result, None
+        linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
+        assert mock_result[0] == linter.check()
 
     def test_none_result_returned_as_success(self):
         tree = ElementTree.fromstring('<project/>')
-        linter = self.LintTestSubclass(tree)
-        linter._mock_result = None, None
+        mock_result = None, None
+        linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
         assert linter.check() is True
 
     def test_linters_can_return_text(self):
         tree = ElementTree.fromstring('<project/>')
-        linter = self.LintTestSubclass(tree)
-        linter._mock_result = None, "some text"
+        mock_result = None, "some text"
+        linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
         linter.check()
