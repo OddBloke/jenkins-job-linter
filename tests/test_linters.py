@@ -5,18 +5,22 @@ import pytest
 
 from jenkins_job_linter.linters import CheckShebang, EnsureTimestamps, Linter
 
+FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
+PASSING_SHEBANG_ARGS = itertools.permutations('eux')
+
 
 class TestCheckShebang(object):
 
     @pytest.mark.parametrize('expected,shell_string', [
-        (True, '#!/bin/sh -eux'),
         (True, 'no-shebang-is-fine'),
         (False, '#!/bin/sh -lolno'),
         (False, '#!/bin/zsh'),
         (True, '#!/usr/bin/env python'),
         (True, ''),
     ] + [(False, '#!/bin/sh -{}'.format(''.join(args)))
-         for args in itertools.combinations('eux', 2)]
+         for args in FAILING_SHEBANG_ARGS] +
+        [(True, '#!/bin/sh -{}'.format(''.join(args)))
+         for args in PASSING_SHEBANG_ARGS]
     )
     def test_project_with_shell(self, expected, shell_string):
         xml_template = '''\
