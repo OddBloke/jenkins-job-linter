@@ -18,6 +18,8 @@ import re
 from typing import Optional, Tuple
 from xml.etree import ElementTree
 
+from stevedore.extension import ExtensionManager
+
 
 class Linter(object):
     """A super-class capturing the common linting pattern."""
@@ -86,4 +88,5 @@ class CheckShebang(Linter):
         return True, None
 
 
-LINTERS = [CheckShebang, EnsureTimestamps]
+extension_manager = ExtensionManager(namespace='jjl.linters')
+LINTERS = [ext.plugin for ext in extension_manager]
