@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Implement a lint subcommand for the jenkins-job-builder command."""
 import argparse
 import logging
 import tempfile
@@ -24,8 +25,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LintSubCommand(test.TestSubCommand):
+    """
+    Class to implement a lint subcommand.
+
+    This wraps the jenkins-job-builder TestSubCommand and redirects the output
+    in to a temporary directory which we then perform the lint on.
+    """
 
     def parse_args(self, subparser: argparse._SubParsersAction) -> None:
+        """Create a lint subparser and add the necessary options."""
         lint = subparser.add_parser('lint')
 
         self.parse_option_recursive_exclude(lint)
@@ -34,6 +42,7 @@ class LintSubCommand(test.TestSubCommand):
 
     def execute(self, options: argparse.Namespace,
                 jjb_config: JJBConfig) -> None:
+        """Generate output in a tempdir and run our linting against it."""
         options.config_xml = False
         with tempfile.TemporaryDirectory() as tmpdir:
             LOGGER.debug('Compiling jobs to temporary directory: %s', tmpdir)
