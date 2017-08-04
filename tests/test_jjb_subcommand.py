@@ -1,0 +1,87 @@
+from jenkins_job_linter.jjb_subcommand import LintSubCommand
+
+
+class TestParseArgs(object):
+
+    def test_parser_named_lint(self, mocker):
+        subcommand = LintSubCommand()
+        subparser_mock = mocker.Mock()
+        subcommand.parse_args(subparser_mock)
+        assert 1 == subparser_mock.add_parser.call_count
+        assert mocker.call('lint') == subparser_mock.add_parser.call_args
+
+    def test_args_added_to_parser(self, mocker):
+        expected_methods = [
+            'parse_arg_names', 'parse_arg_path',
+            'parse_option_recursive_exclude']
+        subcommand = LintSubCommand()
+        mocks = []
+        for expected_method in expected_methods:
+            mock = mocker.Mock()
+            setattr(subcommand, expected_method, mock)
+            mocks.append(mock)
+        subparser_mock = mocker.Mock()
+        subcommand.parse_args(subparser_mock)
+        for mock in mocks:
+            assert 1 == mock.call_count
+            assert mocker.call(
+                subparser_mock.add_parser.return_value) == mock.call_args
+
+
+class TestExecute(object):
+
+    def test_arguments_passed_through(self, mocker):
+        super_execute_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        options, jjb_config = mocker.Mock(), mocker.Mock()
+        subcommand = LintSubCommand()
+        subcommand.execute(options, jjb_config)
+        assert 1 == super_execute_mock.call_count
+        assert mocker.call(options, jjb_config) == super_execute_mock.call_args
+
+    def test_config_xml_set_to_false(self, mocker):
+        super_execute_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        options = mocker.Mock()
+        subcommand = LintSubCommand()
+        subcommand.execute(options, mocker.Mock())
+        assert super_execute_mock.call_args[0][0].config_xml is False
+
+    def _get_tmpdir_mock(self, mocker):
+        temporary_directory_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.tempfile.TemporaryDirectory')
+        return temporary_directory_mock.return_value.__enter__.return_value
+
+    def test_tmpdir_used_as_output_dir(self, mocker):
+        mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
+        super_execute_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        tmpdir_mock = self._get_tmpdir_mock(mocker)
+        options = mocker.Mock()
+        subcommand = LintSubCommand()
+        subcommand.execute(options, mocker.Mock())
+        assert super_execute_mock.call_args[0][0].output_dir == tmpdir_mock
+
+    def test_lint_jobs_from_directory_called_with_tmpdir(self, mocker):
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
+        mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        tmpdir_mock = self._get_tmpdir_mock(mocker)
+        subcommand = LintSubCommand()
+        subcommand.execute(mocker.Mock, mocker.Mock())
+        assert 1 == lint_jobs_mock.call_count
+        assert lint_jobs_mock.call_args[0][0] == tmpdir_mock
+
+    def test_lint_jobs_from_directory_called_with_jjb_config_config_parser(
+            self, mocker):
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
+        mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        jjb_config = mocker.Mock()
+        subcommand = LintSubCommand()
+        subcommand.execute(mocker.Mock, jjb_config)
+        assert 1 == lint_jobs_mock.call_count
+        assert lint_jobs_mock.call_args[0][1] == jjb_config.config_parser
