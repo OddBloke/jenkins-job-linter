@@ -16,6 +16,7 @@ import logging
 import tempfile
 
 import jenkins_jobs.cli.subcommand.test as test
+from jenkins_jobs.config import JJBConfig
 
 from jenkins_job_linter import lint_jobs_from_directory
 
@@ -24,14 +25,15 @@ LOGGER = logging.getLogger(__name__)
 
 class LintSubCommand(test.TestSubCommand):
 
-    def parse_args(self, subparser):
+    def parse_args(self, subparser: argparse._SubParsersAction) -> None:
         lint = subparser.add_parser('lint')
 
         self.parse_option_recursive_exclude(lint)
         self.parse_arg_path(lint)
         self.parse_arg_names(lint)
 
-    def execute(self, options, jjb_config):
+    def execute(self, options: argparse.Namespace,
+                jjb_config: JJBConfig) -> None:
         options.config_xml = False
         with tempfile.TemporaryDirectory() as tmpdir:
             LOGGER.debug('Compiling jobs to temporary directory: %s', tmpdir)
