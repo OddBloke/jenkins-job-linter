@@ -41,10 +41,15 @@ IntegrationTestcase = namedtuple('IntegrationTestcase',
 
 
 def _parse_testcases(filename):
+    names = set()
     with open(filename) as f:
         data = yaml.safe_load(f)
     for case_dict in data['cases']:
-        yield IntegrationTestcase(case_dict['name'], case_dict['jobs.yaml'],
+        name = case_dict['name']
+        if name in names:
+            raise Exception('Duplicate test name: {}'.format(name))
+        names.add(name)
+        yield IntegrationTestcase(name, case_dict['jobs.yaml'],
                                   case_dict['expected_output'])
 
 
