@@ -30,6 +30,7 @@ def _direct_runner(tmpdir):
         output = exc.output
     return output.decode('utf-8')
 
+
 def _jjb_subcommand_runner(tmpdir):
     try:
         output = subprocess.check_output([
@@ -76,4 +77,4 @@ def pytest_generate_tests(metafunc):
     test_cases = _parse_testcases(os.path.join(test_dir, 'tests.yaml'))
     if 'integration_testcase' in metafunc.fixturenames:
         metafunc.parametrize('integration_testcase', test_cases,
-                            ids=lambda testcase: testcase.test_name)
+                             ids=lambda testcase: testcase.test_name)
