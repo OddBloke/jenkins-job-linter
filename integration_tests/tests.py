@@ -16,10 +16,11 @@ import os
 import subprocess
 from collections import namedtuple
 
+import pytest
 import yaml
 
 
-def runner(tmpdir):
+def _direct_runner(tmpdir):
     output_dir = os.path.join(tmpdir, 'output')
     subprocess.check_call([
         'jenkins-jobs', 'test', os.path.join(tmpdir), '-o', output_dir])
@@ -30,7 +31,15 @@ def runner(tmpdir):
     return output.decode('utf-8')
 
 
-def test_integration(tmpdir, integration_testcase):
+@pytest.fixture(params=['direct'])
+def runner(request):
+    runner_funcs = {
+        'direct': _direct_runner,
+    }
+    return runner_funcs[request.param]
+
+
+def test_integration(runner, tmpdir, integration_testcase):
     tmpdir.join('jobs.yaml').write(integration_testcase.jobs_yaml)
     output = runner(tmpdir)
     assert integration_testcase.expected_output == output
