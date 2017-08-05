@@ -39,3 +39,16 @@ cases:
                 - timestamps
       expected_output: |
         test-job: checking shell builder shell scripts are not empty: FAIL
+
+    - name: test_config_doesnt_cause_explosion
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -eux"
+              wrappers:
+                - timestamps
+      expected_output: ""
+      config: |
+          [job_linter]
+          foo=bar
