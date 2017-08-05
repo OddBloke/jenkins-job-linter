@@ -111,13 +111,13 @@ class ShellBuilderLinter(Linter):
 class CheckForEmptyShell(ShellBuilderLinter):
     """Ensure that shell builders in a job have some content."""
 
-    description = 'checking shell builders are not empty'
+    description = 'checking shell builder shell scripts are not empty'
 
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
-                                                                Optional[str]]:
+                                                                None]:
         """Check that a shell script is not empty."""
         if shell_script is None:
-            return LintResult.FAIL, "Empty shell script in shell builder"
+            return LintResult.FAIL, None
         return LintResult.PASS, None
 
 
