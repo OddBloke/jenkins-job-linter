@@ -16,13 +16,18 @@ from xml.etree import ElementTree
 
 import pytest
 
-from jenkins_job_linter.linters import CheckShebang, EnsureTimestamps, Linter
+from jenkins_job_linter.linters import (
+    CheckForEmptyShell,
+    CheckShebang,
+    EnsureTimestamps,
+    Linter,
+)
 
 FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
 PASSING_SHEBANG_ARGS = itertools.permutations('eux')
 
 
-class TestCheckShebang(object):
+class ShellTest(object):
 
     _xml_template = '''\
         <project>
@@ -35,6 +40,9 @@ class TestCheckShebang(object):
         <hudson.tasks.Shell>
             <command>{shell_script}</command>
         </hudson.tasks.Shell>'''
+
+
+class TestCheckShebang(ShellTest):
 
     @pytest.mark.parametrize('expected,shell_string', [
         (True, 'no-shebang-is-fine'),
@@ -74,6 +82,19 @@ class TestCheckShebang(object):
         tree = ElementTree.fromstring(self._xml_template.format(
             builders=builders))
         linter = CheckShebang(tree, {})
+        result, _ = linter.actual_check()
+        assert result is expected
+
+
+class TestCheckForEmptyShell(ShellTest):
+
+    @pytest.mark.parametrize('expected,script', ((False, ''), (True, '...')))
+    def test_actual_check(self, expected, script):
+        tree = ElementTree.fromstring(
+            self._xml_template.format(
+                builders=self._shell_builder_template.format(
+                    shell_script=script)))
+        linter = CheckForEmptyShell(tree, {})
         result, _ = linter.actual_check()
         assert result is expected
 

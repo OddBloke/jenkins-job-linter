@@ -100,6 +100,19 @@ class ShellBuilderLinter(Linter):
         raise NotImplementedError  # pragma: nocover
 
 
+class CheckForEmptyShell(ShellBuilderLinter):
+    """Ensure that shell builders in a job have some content."""
+
+    description = 'checking shell builders are not empty'
+
+    def shell_check(self, shell_script: Optional[str]) -> Tuple[Optional[bool],
+                                                                Optional[str]]:
+        """Check that a shell script is not empty."""
+        if shell_script is None:
+            return False, "Empty shell script in shell builder"
+        return True, None
+
+
 class CheckShebang(ShellBuilderLinter):
     """
     Ensure that shell builders in a job have an appropriate shebang.
