@@ -24,7 +24,8 @@ import click
 from jenkins_job_linter.linters import LINTERS
 
 
-def lint_job_xml(tree: ElementTree.ElementTree, config: ConfigParser) -> bool:
+def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
+                 config: ConfigParser) -> bool:
     """Run all the linters against an XML tree."""
     results = [linter(tree, config).check() for linter in LINTERS]
     return all(results)
@@ -37,7 +38,7 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     for job_file in os.listdir(compiled_job_directory):
         print('Linting', job_file)
         job_path = os.path.join(compiled_job_directory, job_file)
-        result = lint_job_xml(ElementTree.parse(job_path), config)
+        result = lint_job_xml(job_file, ElementTree.parse(job_path), config)
         success = success and result
     return success
 
