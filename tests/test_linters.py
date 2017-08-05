@@ -24,6 +24,18 @@ PASSING_SHEBANG_ARGS = itertools.permutations('eux')
 
 class TestCheckShebang(object):
 
+    _xml_template = '''\
+        <project>
+            <builders>
+                {builders}
+            </builders>
+        </project>'''
+
+    _shell_builder_template = '''\
+        <hudson.tasks.Shell>
+            <command>{shell_script}</command>
+        </hudson.tasks.Shell>'''
+
     @pytest.mark.parametrize('expected,shell_string', [
         (True, 'no-shebang-is-fine'),
         (False, '#!/bin/sh -lolno'),
@@ -36,15 +48,9 @@ class TestCheckShebang(object):
          for args in PASSING_SHEBANG_ARGS]
     )
     def test_project_with_shell(self, expected, shell_string):
-        xml_template = '''\
-        <project>
-          <builders>
-            <hudson.tasks.Shell>
-              <command>{}</command>
-            </hudson.tasks.Shell>
-          </builders>
-        </project>'''
-        xml_string = xml_template.format(shell_string)
+        xml_string = self._xml_template.format(
+            builders=self._shell_builder_template.format(
+                shell_script=shell_string))
         tree = ElementTree.fromstring(xml_string)
         linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
@@ -55,6 +61,21 @@ class TestCheckShebang(object):
         linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
         assert result is None
+
+    @pytest.mark.parametrize('expected,shebangs', (
+        (True, ('#!/bin/sh -eux', '#!/usr/bin/env python3')),
+        (False, ('#!/bin/sh -eux', '#!/bin/sh')),
+        (False, ('#!/bin/sh', '#!/bin/sh -eux'))
+    ))
+    def test_multiple_shell_parts(self, expected, shebangs):
+        builders = ''.join(
+            self._shell_builder_template.format(shell_script=shebang)
+            for shebang in shebangs)
+        tree = ElementTree.fromstring(self._xml_template.format(
+            builders=builders))
+        linter = CheckShebang(tree, {})
+        result, _ = linter.actual_check()
+        assert result is expected
 
 
 class TestEnsureTimestamps(object):

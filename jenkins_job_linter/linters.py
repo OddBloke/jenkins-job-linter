@@ -71,7 +71,36 @@ class EnsureTimestamps(Linter):
         return self._tree.find(self._xpath) is not None, None
 
 
-class CheckShebang(Linter):
+class ShellBuilderLinter(Linter):
+    """A linter that operates on the shell builders of jobs."""
+
+    _xpath = './builders/hudson.tasks.Shell/command'
+
+    def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
+        """
+        Iterate over the shell builders in a job calling self.shell_check.
+
+        If any of the self.shell_check calls fail, this returns that result
+        immediately.  (Note also that it assumes that there will only be text
+        to return on that single failure.)
+        """
+        shell_builders = self._tree.findall(self._xpath)
+        if not shell_builders:
+            return None, None
+        for shell_builder in shell_builders:
+            shell_script = shell_builder.text
+            result, text = self.shell_check(shell_script)
+            if result is False:
+                return result, text
+        return True, None
+
+    def shell_check(self, shell_script: Optional[str]) -> Tuple[Optional[bool],
+                                                                Optional[str]]:
+        """Perform a check for a specific shell builder."""
+        raise NotImplementedError  # pragma: nocover
+
+
+class CheckShebang(ShellBuilderLinter):
     """
     Ensure that shell builders in a job have an appropriate shebang.
 
@@ -83,27 +112,22 @@ class CheckShebang(Linter):
 
     description = 'checking shebang of shell builders'
 
-    def actual_check(self) -> Tuple[Optional[bool], Optional[str]]:
-        """Check shell builders for an appropriate shebang."""
-        shell_parts = self._tree.findall(
-            './builders/hudson.tasks.Shell/command')
-        if not shell_parts:
+    def shell_check(self, shell_script: Optional[str]) -> Tuple[Optional[bool],
+                                                                Optional[str]]:
+        """Check a shell script for an appropriate shebang."""
+        if shell_script is None:
             return None, None
-        for shell_part in shell_parts:
-            script = shell_part.text
-            if script is None:
-                continue
-            first_line = script.splitlines()[0]
-            if not first_line.startswith('#!'):
-                # This will use Jenkins' default
-                continue
-            if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
-                # This has a non-shell shebang
-                continue
-            line_parts = first_line.split(' ')
-            if (len(line_parts) < 2
-                    or re.match(r'-[eux]{3}', line_parts[1]) is None):
-                return False, 'Shebang is {}'.format(first_line)
+        first_line = shell_script.splitlines()[0]
+        if not first_line.startswith('#!'):
+            # This will use Jenkins' default
+            return None, None
+        if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
+            # This has a non-shell shebang
+            return None, None
+        line_parts = first_line.split(' ')
+        if (len(line_parts) < 2
+                or re.match(r'-[eux]{3}', line_parts[1]) is None):
+            return False, 'Shebang is {}'.format(first_line)
         return True, None
 
 
