@@ -32,7 +32,10 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
         result, text = linter(tree, config).check()
         if not result.value:
             success = False
-            print('{}: {}: FAIL'.format(job_name, linter.description))
+            output = '{}: {}: FAIL'.format(job_name, linter.description)
+            if text is not None:
+                output += ': {}'.format(text)
+            print(output)
     return success
 
 
