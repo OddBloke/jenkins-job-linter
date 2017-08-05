@@ -42,6 +42,9 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
 def lint_jobs_from_directory(compiled_job_directory: str,
                              config: ConfigParser) -> bool:
     """Load jobs from a directory and run linters against each one."""
+    for section in config.sections():
+        if section != 'job_linter':
+            config.remove_section(section)
     success = True
     for job_file in os.listdir(compiled_job_directory):
         job_path = os.path.join(compiled_job_directory, job_file)

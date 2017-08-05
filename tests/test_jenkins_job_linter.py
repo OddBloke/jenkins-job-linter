@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import configparser
 import os
 
 import pytest
@@ -96,6 +97,20 @@ class TestLintJobsFromDirectory:
             os.path.join(dirname, f) for f in listdir_mock.return_value)
         assert expected_paths == set(
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
+
+    def test_filtered_config_passed_to_lint_job_xml(self, mocker):
+        config = configparser.ConfigParser()
+        config.read_dict({'jenkins': {},
+                          'job_builder': {},
+                          'something_else': {},
+                          'job_linter': {}})
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dirname', config)
+        passed_config = lint_job_xml_mock.call_args[0][2]
+        assert ['job_linter'] == passed_config.sections()
 
 
 class TestMain:

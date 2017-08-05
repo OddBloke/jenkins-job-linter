@@ -46,7 +46,7 @@ class TestExecute:
     def test_arguments_passed_through(self, mocker):
         super_execute_mock = mocker.patch(
             'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
-        options, jjb_config = mocker.Mock(), mocker.Mock()
+        options, jjb_config = mocker.Mock(), mocker.MagicMock()
         subcommand = LintSubCommand()
         subcommand.execute(options, jjb_config)
         assert 1 == super_execute_mock.call_count
@@ -57,7 +57,7 @@ class TestExecute:
             'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
         options = mocker.Mock()
         subcommand = LintSubCommand()
-        subcommand.execute(options, mocker.Mock())
+        subcommand.execute(options, mocker.MagicMock())
         assert super_execute_mock.call_args[0][0].config_xml is False
 
     def _get_tmpdir_mock(self, mocker):
