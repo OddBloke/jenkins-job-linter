@@ -17,6 +17,7 @@ import pytest
 from click.testing import CliRunner
 
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
+from jenkins_job_linter.linters import LintResult
 
 
 class TestLintJobXML:
@@ -31,10 +32,10 @@ class TestLintJobXML:
                                                         mocker.sentinel.config)
 
     @pytest.mark.parametrize('expected,results', (
-        (True, (True,)),
-        (True, (True, True)),
-        (False, (True, False)),
-        (False, (True, False, True)),
+        (True, (LintResult.PASS,)),
+        (True, (LintResult.PASS, LintResult.PASS)),
+        (False, (LintResult.PASS, LintResult.FAIL)),
+        (False, (LintResult.PASS, LintResult.FAIL, LintResult.PASS)),
     ))
     def test_result_aggregation(self, mocker, expected, results):
         linter_mocks = []

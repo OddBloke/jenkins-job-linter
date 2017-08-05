@@ -21,6 +21,7 @@ from jenkins_job_linter.linters import (
     CheckShebang,
     EnsureTimestamps,
     Linter,
+    LintResult,
 )
 
 FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
@@ -45,14 +46,14 @@ class ShellTest:
 class TestCheckShebang(ShellTest):
 
     @pytest.mark.parametrize('expected,shell_string', [
-        (True, 'no-shebang-is-fine'),
-        (False, '#!/bin/sh -lolno'),
-        (False, '#!/bin/zsh'),
-        (True, '#!/usr/bin/env python'),
-        (True, ''),
-    ] + [(False, '#!/bin/sh -{}'.format(''.join(args)))
+        (LintResult.PASS, 'no-shebang-is-fine'),
+        (LintResult.FAIL, '#!/bin/sh -lolno'),
+        (LintResult.FAIL, '#!/bin/zsh'),
+        (LintResult.PASS, '#!/usr/bin/env python'),
+        (LintResult.PASS, ''),
+    ] + [(LintResult.FAIL, '#!/bin/sh -{}'.format(''.join(args)))
          for args in FAILING_SHEBANG_ARGS] +
-        [(True, '#!/bin/sh -{}'.format(''.join(args)))
+        [(LintResult.PASS, '#!/bin/sh -{}'.format(''.join(args)))
          for args in PASSING_SHEBANG_ARGS]
     )
     def test_project_with_shell(self, expected, shell_string):
@@ -68,12 +69,12 @@ class TestCheckShebang(ShellTest):
         tree = ElementTree.fromstring('<project/>')
         linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
-        assert result is None
+        assert result is LintResult.SKIP
 
     @pytest.mark.parametrize('expected,shebangs', (
-        (True, ('#!/bin/sh -eux', '#!/usr/bin/env python3')),
-        (False, ('#!/bin/sh -eux', '#!/bin/sh')),
-        (False, ('#!/bin/sh', '#!/bin/sh -eux'))
+        (LintResult.PASS, ('#!/bin/sh -eux', '#!/usr/bin/env python3')),
+        (LintResult.FAIL, ('#!/bin/sh -eux', '#!/bin/sh')),
+        (LintResult.FAIL, ('#!/bin/sh', '#!/bin/sh -eux'))
     ))
     def test_multiple_shell_parts(self, expected, shebangs):
         builders = ''.join(
@@ -88,7 +89,8 @@ class TestCheckShebang(ShellTest):
 
 class TestCheckForEmptyShell(ShellTest):
 
-    @pytest.mark.parametrize('expected,script', ((False, ''), (True, '...')))
+    @pytest.mark.parametrize('expected,script', (
+        (LintResult.FAIL, ''), (LintResult.PASS, '...')))
     def test_actual_check(self, expected, script):
         tree = ElementTree.fromstring(
             self._xml_template.format(
@@ -102,12 +104,13 @@ class TestCheckForEmptyShell(ShellTest):
 class TestEnsureTimestamps:
 
     @pytest.mark.parametrize('expected,xml_string', (
-        (False, '<project/>'),
-        (True, '''<project>
-                    <buildWrappers>
-                        <hudson.plugins.timestamper.TimestamperBuildWrapper />
-                    </buildWrappers>
-                  </project>''')))
+        (LintResult.FAIL, '<project/>'),
+        (LintResult.PASS, '''\
+            <project>
+                <buildWrappers>
+                    <hudson.plugins.timestamper.TimestamperBuildWrapper />
+                </buildWrappers>
+            </project>''')))
     def test_linter(self, expected, xml_string):
         tree = ElementTree.fromstring(xml_string)
         linter = EnsureTimestamps(tree, {})
@@ -129,12 +132,6 @@ class TestLinter:
         mock_result = mocker.sentinel.result, None
         linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
         assert mock_result[0] == linter.check()
-
-    def test_none_result_returned_as_success(self):
-        tree = ElementTree.fromstring('<project/>')
-        mock_result = None, None
-        linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
-        assert linter.check() is True
 
     def test_linters_can_return_text(self):
         tree = ElementTree.fromstring('<project/>')
