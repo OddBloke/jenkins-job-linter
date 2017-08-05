@@ -47,15 +47,9 @@ class Linter(object):
 
     def check(self) -> bool:
         """Wrap actual_check in nice output."""
-        print(' ... {}:'.format(self.description), end='')
-        result, text = self.actual_check()
+        result, _ = self.actual_check()
         if result is None:
-            print(' N/A')
-            result = True
-        else:
-            print(' OK' if result else ' FAILURE')
-        if text:
-            print('     {}'.format(text))
+            return True
         return result
 
 
