@@ -20,6 +20,17 @@ import pytest
 import yaml
 
 
+JJB_CONFIG = '''\
+[job_builder]
+ignore_cache=True
+
+[jenkins]
+url=http://0.0.0.0:8080/
+user=XXX
+password=XXX
+'''
+
+
 def _direct_runner(tmpdir, config):
     output_dir = os.path.join(tmpdir, 'output')
     subprocess.check_call([
@@ -41,8 +52,7 @@ def _jjb_subcommand_runner(tmpdir, config):
     config_args = []
     if config is not None:
         conf_file = 'config.ini'
-        # TODO: Modify the given config to include some jenkins-job-builder
-        # configuration
+        config = '\n'.join([JJB_CONFIG, config])
         tmpdir.join(conf_file).write(config)
         config_args = ['--conf', conf_file]
     try:
