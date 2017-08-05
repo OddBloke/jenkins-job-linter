@@ -27,7 +27,7 @@ FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
 PASSING_SHEBANG_ARGS = itertools.permutations('eux')
 
 
-class ShellTest(object):
+class ShellTest:
 
     _xml_template = '''\
         <project>
@@ -99,7 +99,7 @@ class TestCheckForEmptyShell(ShellTest):
         assert result is expected
 
 
-class TestEnsureTimestamps(object):
+class TestEnsureTimestamps:
 
     @pytest.mark.parametrize('expected,xml_string', (
         (False, '<project/>'),
@@ -115,7 +115,7 @@ class TestEnsureTimestamps(object):
         assert result is expected
 
 
-class TestLinter(object):
+class TestLinter:
 
     class LintTestSubclass(Linter):
 

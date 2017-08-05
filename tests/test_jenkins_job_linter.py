@@ -19,7 +19,7 @@ from click.testing import CliRunner
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 
 
-class TestLintJobXML(object):
+class TestLintJobXML:
 
     def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [mocker.Mock() for _ in range(3)]
@@ -47,7 +47,7 @@ class TestLintJobXML(object):
                             mocker.MagicMock()) is expected
 
 
-class TestLintJobsFromDirectory(object):
+class TestLintJobsFromDirectory:
 
     def test_empty_directory(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
@@ -87,7 +87,7 @@ class TestLintJobsFromDirectory(object):
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
 
 
-class TestMain(object):
+class TestMain:
 
     def test_argument_passed_through(self, mocker):
         runner = CliRunner()
