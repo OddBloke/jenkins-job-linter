@@ -22,7 +22,7 @@ FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
 PASSING_SHEBANG_ARGS = itertools.permutations('eux')
 
 
-class TestCheckShebang(object):
+class ShellTest(object):
 
     _xml_template = '''\
         <project>
@@ -35,6 +35,9 @@ class TestCheckShebang(object):
         <hudson.tasks.Shell>
             <command>{shell_script}</command>
         </hudson.tasks.Shell>'''
+
+
+class TestCheckShebang(ShellTest):
 
     @pytest.mark.parametrize('expected,shell_string', [
         (True, 'no-shebang-is-fine'),
