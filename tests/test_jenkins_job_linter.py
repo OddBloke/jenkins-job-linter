@@ -24,6 +24,8 @@ class TestLintJobXML:
 
     def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [mocker.Mock() for _ in range(3)]
+        for linter_mock in linter_mocks:
+            linter_mock.return_value.check.return_value = mocker.Mock(), None
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
         lint_job_xml('job_name', mocker.sentinel.tree, mocker.sentinel.config)
         for linter_mock in linter_mocks:
@@ -32,10 +34,11 @@ class TestLintJobXML:
                                                         mocker.sentinel.config)
 
     @pytest.mark.parametrize('expected,results', (
-        (True, (LintResult.PASS,)),
-        (True, (LintResult.PASS, LintResult.PASS)),
-        (False, (LintResult.PASS, LintResult.FAIL)),
-        (False, (LintResult.PASS, LintResult.FAIL, LintResult.PASS)),
+        (True, ((LintResult.PASS, None),)),
+        (True, ((LintResult.PASS, None), (LintResult.PASS, None))),
+        (False, ((LintResult.PASS, None), (LintResult.FAIL, None))),
+        (False, ((LintResult.PASS, None), (LintResult.FAIL, None),
+                 (LintResult.PASS, None))),
     ))
     def test_result_aggregation(self, mocker, expected, results):
         linter_mocks = []

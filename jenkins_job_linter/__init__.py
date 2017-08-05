@@ -29,7 +29,7 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     """Run all the linters against an XML tree."""
     success = True
     for linter in LINTERS:
-        result = linter(tree, config).check()
+        result, text = linter(tree, config).check()
         if not result.value:
             success = False
             print('{}: {}: FAIL'.format(job_name, linter.description))

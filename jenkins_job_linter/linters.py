@@ -59,12 +59,9 @@ class Linter:
         """Output-friendly description of what this Linter does."""
         raise NotImplementedError  # pragma: nocover
 
-    def check(self) -> LintResult:
+    def check(self) -> Tuple[LintResult, Optional[str]]:
         """Wrap actual_check in nice output."""
-        result, _ = self.actual_check()
-        if result is None:
-            return True
-        return result
+        return self.actual_check()
 
 
 class EnsureTimestamps(Linter):
