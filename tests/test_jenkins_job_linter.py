@@ -50,6 +50,13 @@ class TestLintJobXML:
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is expected
 
+    def test_linters_can_return_text(self, mocker):
+        linter_mock = mocker.Mock()
+        linter_mock.return_value.check.return_value = LintResult.FAIL, 'msg'
+        mocker.patch('jenkins_job_linter.LINTERS', [linter_mock])
+        assert lint_job_xml('job_name', mocker.sentinel.tree,
+                            mocker.MagicMock()) is False
+
 
 class TestLintJobsFromDirectory:
 
