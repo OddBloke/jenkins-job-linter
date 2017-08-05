@@ -127,14 +127,8 @@ class TestLinter:
         def actual_check(self):
             return self._config['_mock_result']
 
-    def test_actual_check_result_passed_through(self, mocker):
+    def test_check_and_text_passed_through(self, mocker):
         tree = ElementTree.fromstring('<project/>')
-        mock_result = mocker.sentinel.result, None
+        mock_result = mocker.sentinel.result, mocker.sentinel.text
         linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
-        assert mock_result[0] == linter.check()
-
-    def test_linters_can_return_text(self):
-        tree = ElementTree.fromstring('<project/>')
-        mock_result = None, "some text"
-        linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
-        linter.check()
+        assert mock_result == linter.check()
