@@ -4,12 +4,12 @@ sudo: disabled
 
 python: 3.6
 env:
+ - TOX_ENV=codecov
  - TOX_ENV=py35
  - TOX_ENV=py36
  - TOX_ENV=integration_tests
  - TOX_ENV=lint
  - TOX_ENV=mypy
- - TOX_ENV=codecov
 install:
  - pip install tox
 script:

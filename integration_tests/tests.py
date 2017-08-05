@@ -73,7 +73,7 @@ def _parse_testcases(filename):
 
 def pytest_generate_tests(metafunc):
     test_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    test_cases = _parse_testcases(os.path.join(test_dir, 'tests.ini'))
+    test_cases = _parse_testcases(os.path.join(test_dir, 'tests.yaml'))
     if 'integration_testcase' in metafunc.fixturenames:
         metafunc.parametrize('integration_testcase', test_cases,
                             ids=lambda testcase: testcase.test_name)
