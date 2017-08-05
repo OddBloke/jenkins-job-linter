@@ -62,6 +62,21 @@ class TestCheckShebang(object):
         result, _ = linter.actual_check()
         assert result is None
 
+    @pytest.mark.parametrize('expected,shebangs', (
+        (True, ('#!/bin/sh -eux', '#!/usr/bin/env python3')),
+        (False, ('#!/bin/sh -eux', '#!/bin/sh')),
+        (False, ('#!/bin/sh', '#!/bin/sh -eux'))
+    ))
+    def test_multiple_shell_parts(self, expected, shebangs):
+        builders = ''.join(
+            self._shell_builder_template.format(shell_script=shebang)
+            for shebang in shebangs)
+        tree = ElementTree.fromstring(self._xml_template.format(
+            builders=builders))
+        linter = CheckShebang(tree, {})
+        result, _ = linter.actual_check()
+        assert result is expected
+
 
 class TestEnsureTimestamps(object):
 
