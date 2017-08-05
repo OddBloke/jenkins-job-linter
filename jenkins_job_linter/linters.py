@@ -20,7 +20,7 @@ from xml.etree import ElementTree
 from stevedore.extension import ExtensionManager
 
 
-class Linter(object):
+class Linter:
     """A super-class capturing the common linting pattern."""
 
     def __init__(self, tree: ElementTree.ElementTree,

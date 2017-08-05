@@ -14,7 +14,7 @@
 from jenkins_job_linter.jjb_subcommand import LintSubCommand
 
 
-class TestParseArgs(object):
+class TestParseArgs:
 
     def test_parser_named_lint(self, mocker):
         subcommand = LintSubCommand()
@@ -41,7 +41,7 @@ class TestParseArgs(object):
                 subparser_mock.add_parser.return_value) == mock.call_args
 
 
-class TestExecute(object):
+class TestExecute:
 
     def test_arguments_passed_through(self, mocker):
         super_execute_mock = mocker.patch(
