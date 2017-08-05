@@ -24,6 +24,18 @@ PASSING_SHEBANG_ARGS = itertools.permutations('eux')
 
 class TestCheckShebang(object):
 
+    _xml_template = '''\
+        <project>
+            <builders>
+                {builders}
+            </builders>
+        </project>'''
+
+    _shell_builder_template = '''\
+        <hudson.tasks.Shell>
+            <command>{shell_script}</command>
+        </hudson.tasks.Shell>'''
+
     @pytest.mark.parametrize('expected,shell_string', [
         (True, 'no-shebang-is-fine'),
         (False, '#!/bin/sh -lolno'),
@@ -36,15 +48,9 @@ class TestCheckShebang(object):
          for args in PASSING_SHEBANG_ARGS]
     )
     def test_project_with_shell(self, expected, shell_string):
-        xml_template = '''\
-        <project>
-          <builders>
-            <hudson.tasks.Shell>
-              <command>{}</command>
-            </hudson.tasks.Shell>
-          </builders>
-        </project>'''
-        xml_string = xml_template.format(shell_string)
+        xml_string = self._xml_template.format(
+            builders=self._shell_builder_template.format(
+                shell_script=shell_string))
         tree = ElementTree.fromstring(xml_string)
         linter = CheckShebang(tree, {})
         result, _ = linter.actual_check()
