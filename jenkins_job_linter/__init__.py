@@ -30,7 +30,7 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     success = True
     for linter in LINTERS:
         result = linter(tree, config).check()
-        if not result:
+        if not result.value:
             success = False
             print('{}: {}: FAIL'.format(job_name, linter.description))
     return success
