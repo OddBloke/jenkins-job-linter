@@ -30,11 +30,20 @@ def _direct_runner(tmpdir):
         output = exc.output
     return output.decode('utf-8')
 
+def _jjb_subcommand_runner(tmpdir):
+    try:
+        output = subprocess.check_output([
+            'jenkins-jobs', 'lint', os.path.join(tmpdir)])
+    except subprocess.CalledProcessError as exc:
+        output = exc.output
+    return output.decode('utf-8')
 
-@pytest.fixture(params=['direct'])
+
+@pytest.fixture(params=['direct', 'jjb_subcommand'])
 def runner(request):
     runner_funcs = {
         'direct': _direct_runner,
+        'jjb_subcommand': _jjb_subcommand_runner,
     }
     return runner_funcs[request.param]
 
