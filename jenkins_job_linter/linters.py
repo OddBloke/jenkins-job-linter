@@ -63,11 +63,17 @@ class Linter:
         """Output-friendly description of what this Linter does."""
         raise NotImplementedError  # pragma: nocover
 
+    @property
+    def name(self) -> str:
+        """Name for this linter (used in configuration)."""
+        raise NotImplementedError  # pragma: nocover
+
 
 class EnsureTimestamps(Linter):
     """Ensure that a job is configured with timestamp output."""
 
     description = 'checking for timestamps'
+    name = 'ensure_timestamps'
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
@@ -112,6 +118,7 @@ class CheckForEmptyShell(ShellBuilderLinter):
     """Ensure that shell builders in a job have some content."""
 
     description = 'checking shell builder shell scripts are not empty'
+    name = 'check_for_empty_shell'
 
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
                                                                 None]:
@@ -132,6 +139,7 @@ class CheckShebang(ShellBuilderLinter):
     """
 
     description = 'checking shebang of shell builders'
+    name = 'check_shebang'
 
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
                                                                 Optional[str]]:
