@@ -8,6 +8,7 @@ cases:
               wrappers:
                 - timestamps
       expected_output: ""
+      expect_success: True
 
     - name: test_missing_timestamps
       jobs.yaml: |
@@ -17,6 +18,7 @@ cases:
                 - shell: "#!/bin/sh -eux"
       expected_output: |
         test-job: checking for timestamps: FAIL
+      expect_success: False
 
     - name: test_invalid_shebang
       jobs.yaml: |
@@ -28,6 +30,7 @@ cases:
                 - timestamps
       expected_output: |
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh -ex
+      expect_success: False
 
     - name: test_empty_shell_builder
       jobs.yaml: |
@@ -39,3 +42,18 @@ cases:
                 - timestamps
       expected_output: |
         test-job: checking shell builder shell scripts are not empty: FAIL
+      expect_success: False
+
+    - name: test_config_doesnt_cause_explosion
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -eux"
+              wrappers:
+                - timestamps
+      expected_output: ""
+      config: |
+          [job_linter]
+          foo=bar
+      expect_success: True

@@ -14,6 +14,7 @@
 """Implement a lint subcommand for the jenkins-job-builder command."""
 import argparse
 import logging
+import sys
 import tempfile
 
 import jenkins_jobs.cli.subcommand.test as test
@@ -50,4 +51,6 @@ class LintSubCommand(test.TestSubCommand):
 
             super(LintSubCommand, self).execute(options, jjb_config)
 
-            lint_jobs_from_directory(tmpdir, jjb_config.config_parser)
+            if lint_jobs_from_directory(tmpdir, jjb_config.config_parser):
+                sys.exit(0)
+            sys.exit(1)

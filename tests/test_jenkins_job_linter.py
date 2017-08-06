@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import configparser
 import os
 
 import pytest
@@ -65,17 +66,16 @@ class TestLintJobsFromDirectory:
         listdir_mock.return_value = []
         assert lint_jobs_from_directory('dir', mocker.MagicMock())
 
-    def test_job_name_tree_and_config_passed_to_lint_job_xml(self, mocker):
+    def test_job_name_and_tree_passed_to_lint_job_xml(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = ['some', 'files']
         et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
-        config_mock = mocker.MagicMock()
-        lint_jobs_from_directory('dir', config_mock)
+        lint_jobs_from_directory('dir', mocker.MagicMock())
         assert len(listdir_mock.return_value) == lint_job_xml_mock.call_count
         for filename in listdir_mock.return_value:
             assert (
-                mocker.call(filename, et_parse_mock.return_value, config_mock)
+                mocker.call(filename, et_parse_mock.return_value, mocker.ANY)
                 in lint_job_xml_mock.call_args_list)
 
     def test_passed_directory_is_used_for_listing(self, mocker):
@@ -96,6 +96,34 @@ class TestLintJobsFromDirectory:
             os.path.join(dirname, f) for f in listdir_mock.return_value)
         assert expected_paths == set(
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
+
+    def test_filtered_config_passed_to_lint_job_xml(self, mocker):
+        config = configparser.ConfigParser()
+        config.read_dict({'jenkins': {},
+                          'job_builder': {},
+                          'something_else': {},
+                          'job_linter': {}})
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dirname', config)
+        passed_config = lint_job_xml_mock.call_args[0][2]
+        assert ['job_linter'] == passed_config.sections()
+
+    def test_config_passed_in_isnt_modified(self, mocker):
+        config = configparser.ConfigParser()
+        config.read_dict({'jenkins': {},
+                          'job_builder': {},
+                          'something_else': {},
+                          'job_linter': {}})
+        expected_sections_after = config.sections()
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dirname', config)
+        assert expected_sections_after == config.sections()
 
 
 class TestMain:

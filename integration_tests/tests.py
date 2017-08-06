@@ -20,24 +20,51 @@ import pytest
 import yaml
 
 
-def _direct_runner(tmpdir):
+JJB_CONFIG = '''\
+[job_builder]
+ignore_cache=True
+
+[jenkins]
+url=http://0.0.0.0:8080/
+user=XXX
+password=XXX
+'''
+
+
+def _direct_runner(tmpdir, config):
     output_dir = os.path.join(tmpdir, 'output')
     subprocess.check_call([
         'jenkins-jobs', 'test', os.path.join(tmpdir), '-o', output_dir])
+    config_args = []
+    if config is not None:
+        conf_file = tmpdir.join('config.ini')
+        conf_file.write(config)
+        config_args = ['--conf', str(conf_file)]
+    success = True
     try:
-        output = subprocess.check_output(['jenkins-job-linter', output_dir])
+        output = subprocess.check_output(['jenkins-job-linter', output_dir]
+                                         + config_args)
     except subprocess.CalledProcessError as exc:
         output = exc.output
-    return output.decode('utf-8')
+        success = False
+    return success, output.decode('utf-8')
 
 
-def _jjb_subcommand_runner(tmpdir):
+def _jjb_subcommand_runner(tmpdir, config):
+    config_args = []
+    if config is not None:
+        conf_file = tmpdir.join('config.ini')
+        config = '\n'.join([JJB_CONFIG, config])
+        conf_file.write(config)
+        config_args = ['--conf', str(conf_file)]
+    success = True
     try:
         output = subprocess.check_output([
-            'jenkins-jobs', 'lint', os.path.join(tmpdir)])
+            'jenkins-jobs'] + config_args + ['lint', os.path.join(tmpdir)])
     except subprocess.CalledProcessError as exc:
         output = exc.output
-    return output.decode('utf-8')
+        success = False
+    return success, output.decode('utf-8')
 
 
 @pytest.fixture(params=['direct', 'jjb_subcommand'])
@@ -51,12 +78,14 @@ def runner(request):
 
 def test_integration(runner, tmpdir, integration_testcase):
     tmpdir.join('jobs.yaml').write(integration_testcase.jobs_yaml)
-    output = runner(tmpdir)
+    success, output = runner(tmpdir, integration_testcase.config)
     assert integration_testcase.expected_output == output
+    assert integration_testcase.expect_success == success
 
 
-IntegrationTestcase = namedtuple('IntegrationTestcase',
-                                 ['test_name', 'jobs_yaml', 'expected_output'])
+IntegrationTestcase = namedtuple(
+    'IntegrationTestcase',
+    ['test_name', 'jobs_yaml', 'expected_output', 'expect_success', 'config'])
 
 
 def _parse_testcases(filename):
@@ -69,7 +98,9 @@ def _parse_testcases(filename):
             raise Exception('Duplicate test name: {}'.format(name))
         names.add(name)
         yield IntegrationTestcase(name, case_dict['jobs.yaml'],
-                                  case_dict['expected_output'])
+                                  case_dict['expected_output'],
+                                  case_dict['expect_success'],
+                                  case_dict.get('config', None))
 
 
 def pytest_generate_tests(metafunc):

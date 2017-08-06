@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+
 from jenkins_job_linter.jjb_subcommand import LintSubCommand
 
 
@@ -44,20 +46,22 @@ class TestParseArgs:
 class TestExecute:
 
     def test_arguments_passed_through(self, mocker):
+        mocker.patch('jenkins_job_linter.jjb_subcommand.sys.exit')
         super_execute_mock = mocker.patch(
             'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
-        options, jjb_config = mocker.Mock(), mocker.Mock()
+        options, jjb_config = mocker.Mock(), mocker.MagicMock()
         subcommand = LintSubCommand()
         subcommand.execute(options, jjb_config)
         assert 1 == super_execute_mock.call_count
         assert mocker.call(options, jjb_config) == super_execute_mock.call_args
 
     def test_config_xml_set_to_false(self, mocker):
+        mocker.patch('jenkins_job_linter.jjb_subcommand.sys.exit')
         super_execute_mock = mocker.patch(
             'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
         options = mocker.Mock()
         subcommand = LintSubCommand()
-        subcommand.execute(options, mocker.Mock())
+        subcommand.execute(options, mocker.MagicMock())
         assert super_execute_mock.call_args[0][0].config_xml is False
 
     def _get_tmpdir_mock(self, mocker):
@@ -66,6 +70,7 @@ class TestExecute:
         return temporary_directory_mock.return_value.__enter__.return_value
 
     def test_tmpdir_used_as_output_dir(self, mocker):
+        mocker.patch('jenkins_job_linter.jjb_subcommand.sys.exit')
         mocker.patch(
             'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
         super_execute_mock = mocker.patch(
@@ -77,6 +82,7 @@ class TestExecute:
         assert super_execute_mock.call_args[0][0].output_dir == tmpdir_mock
 
     def test_lint_jobs_from_directory_called_with_tmpdir(self, mocker):
+        mocker.patch('jenkins_job_linter.jjb_subcommand.sys.exit')
         lint_jobs_mock = mocker.patch(
             'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
         mocker.patch(
@@ -89,6 +95,7 @@ class TestExecute:
 
     def test_lint_jobs_from_directory_called_with_jjb_config_config_parser(
             self, mocker):
+        mocker.patch('jenkins_job_linter.jjb_subcommand.sys.exit')
         lint_jobs_mock = mocker.patch(
             'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
         mocker.patch(
@@ -98,3 +105,16 @@ class TestExecute:
         subcommand.execute(mocker.Mock, jjb_config)
         assert 1 == lint_jobs_mock.call_count
         assert lint_jobs_mock.call_args[0][1] == jjb_config.config_parser
+
+    @pytest.mark.parametrize('expected,result', ((0, True), (1, False)))
+    def test_exit_codes(self, expected, mocker, result):
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.lint_jobs_from_directory')
+        lint_jobs_mock.return_value = result
+        mocker.patch(
+            'jenkins_job_linter.jjb_subcommand.test.TestSubCommand.execute')
+        jjb_config = mocker.Mock()
+        subcommand = LintSubCommand()
+        with pytest.raises(SystemExit) as exc_info:
+            subcommand.execute(mocker.Mock, jjb_config)
+        assert expected == exc_info.value.code

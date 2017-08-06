@@ -39,9 +39,25 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     return success
 
 
+def _filter_config(config: ConfigParser) -> ConfigParser:
+    """
+    Return a ConfigParser with only the job_linter section of the one passed.
+
+    This creates a new ConfigParser and removes sections from that, so the one
+    passed in remains unmodified.
+    """
+    filtered_config = ConfigParser()
+    filtered_config.read_dict(config)
+    for section in filtered_config.sections():
+        if section != 'job_linter':
+            filtered_config.remove_section(section)
+    return filtered_config
+
+
 def lint_jobs_from_directory(compiled_job_directory: str,
                              config: ConfigParser) -> bool:
     """Load jobs from a directory and run linters against each one."""
+    config = _filter_config(config)
     success = True
     for job_file in os.listdir(compiled_job_directory):
         job_path = os.path.join(compiled_job_directory, job_file)
