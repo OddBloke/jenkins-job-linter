@@ -1,5 +1,7 @@
 cases:
     - name: test_all_linters_happy_path
+      description: |
+          Test a job that should pass all linting checks
       jobs.yaml: |
           - job:
               name: test-job
@@ -11,6 +13,8 @@ cases:
       expect_success: True
 
     - name: test_missing_timestamps
+      description: |
+          Test that missing timestamps cause a linting failure
       jobs.yaml: |
           - job:
               name: test-job
@@ -21,6 +25,8 @@ cases:
       expect_success: False
 
     - name: test_invalid_shebang
+      description: |
+          Test that an invalid shebang causes a linting failure
       jobs.yaml: |
           - job:
               name: test-job
@@ -33,6 +39,8 @@ cases:
       expect_success: False
 
     - name: test_empty_shell_builder
+      description: |
+          Test that empty shell builders cause linting failures
       jobs.yaml: |
           - job:
               name: test-job
@@ -45,6 +53,8 @@ cases:
       expect_success: False
 
     - name: test_disable_linters_config
+      description: |
+          Test that disable_linters will skip checks (specifically timestamps in this case)
       jobs.yaml: |
           - job:
               name: test-job
