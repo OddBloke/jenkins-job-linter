@@ -18,15 +18,15 @@ import pytest
 from click.testing import CliRunner
 
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
-from jenkins_job_linter.linters import LintResult
+from jenkins_job_linter.linters import Linter, LintResult
+
+from .mocks import create_mock_for_class
 
 
 class TestLintJobXML:
 
     def test_all_linters_called_with_tree_and_config(self, mocker):
-        linter_mocks = [mocker.Mock() for _ in range(3)]
-        for linter_mock in linter_mocks:
-            linter_mock.return_value.check.return_value = mocker.Mock(), None
+        linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
         lint_job_xml('job_name', mocker.sentinel.tree, mocker.sentinel.config)
         for linter_mock in linter_mocks:
@@ -35,25 +35,23 @@ class TestLintJobXML:
                                                         mocker.sentinel.config)
 
     @pytest.mark.parametrize('expected,results', (
-        (True, ((LintResult.PASS, None),)),
-        (True, ((LintResult.PASS, None), (LintResult.PASS, None))),
-        (False, ((LintResult.PASS, None), (LintResult.FAIL, None))),
-        (False, ((LintResult.PASS, None), (LintResult.FAIL, None),
-                 (LintResult.PASS, None))),
+        (True, (LintResult.PASS,)),
+        (True, (LintResult.PASS, LintResult.PASS)),
+        (False, (LintResult.PASS, LintResult.FAIL)),
+        (False, (LintResult.PASS, LintResult.FAIL, LintResult.PASS)),
     ))
     def test_result_aggregation(self, mocker, expected, results):
         linter_mocks = []
         for result in results:
-            mock = mocker.Mock()
-            mock.return_value.check.return_value = result
+            mock = create_mock_for_class(Linter, check_result=result)
             linter_mocks.append(mock)
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is expected
 
     def test_linters_can_return_text(self, mocker):
-        linter_mock = mocker.Mock()
-        linter_mock.return_value.check.return_value = LintResult.FAIL, 'msg'
+        linter_mock = create_mock_for_class(
+            Linter, check_result=LintResult.FAIL, check_msg='msg')
         mocker.patch('jenkins_job_linter.LINTERS', [linter_mock])
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is False
