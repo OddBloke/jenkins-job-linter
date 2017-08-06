@@ -29,6 +29,9 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     """Run all the linters against an XML tree."""
     success = True
     for linter in LINTERS:
+        if 'job_linter' in config and linter.name in config['job_linter'].get(
+                'disable_linters', []):
+            continue
         result, text = linter(tree, config).check()
         if not result.value:
             success = False

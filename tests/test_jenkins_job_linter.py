@@ -28,11 +28,12 @@ class TestLintJobXML:
     def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
-        lint_job_xml('job_name', mocker.sentinel.tree, mocker.sentinel.config)
+        config = configparser.ConfigParser()
+        lint_job_xml('job_name', mocker.sentinel.tree, config)
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
             assert linter_mock.call_args == mocker.call(mocker.sentinel.tree,
-                                                        mocker.sentinel.config)
+                                                        config)
 
     @pytest.mark.parametrize('expected,results', (
         (True, (LintResult.PASS,)),
@@ -55,6 +56,15 @@ class TestLintJobXML:
         mocker.patch('jenkins_job_linter.LINTERS', [linter_mock])
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is False
+
+    def test_disable_linters_config(self, mocker):
+        linter_mocks = [create_mock_for_class(Linter, name='disable_me'),
+                        create_mock_for_class(Linter, name='not_me')]
+        mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
+        config = {'job_linter': {'disable_linters': ['disable_me']}}
+        lint_job_xml('job_name', mocker.Mock(), config)
+        assert 0 == linter_mocks[0].call_count
+        assert 1 == linter_mocks[1].call_count
 
 
 class TestLintJobsFromDirectory:
