@@ -96,6 +96,8 @@ def _parse_testcases(filename):
         name = case_dict['name']
         if name in names:
             raise Exception('Duplicate test name: {}'.format(name))
+        if 'description' not in case_dict:
+            raise Exception('Test {} has no description'.format(name))
         names.add(name)
         yield IntegrationTestcase(name, case_dict['jobs.yaml'],
                                   case_dict['expected_output'],
