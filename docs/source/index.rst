@@ -6,9 +6,17 @@
 Welcome to jenkins-job-linter's documentation!
 ==============================================
 
+jenkins-job-linter runs linting checks against Jenkins job XML looking
+for common errors.  It is primarily intended for use with the output of
+`Jenkins Job Builder
+<https://docs.openstack.org/infra/jenkins-job-builder/>`_.
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+
+   running
+   configuration
+   linters
 
 
 
