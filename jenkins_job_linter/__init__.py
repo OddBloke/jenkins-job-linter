@@ -29,6 +29,9 @@ CONFIG_DEFAULTS = {
     'job_linter': {
         'disable_linters': [],
     },
+    'job_linter:check_shebang': {
+        'allow_default_shebang': True,
+    },
 }  # type: Dict[str, Dict]
 
 
@@ -60,7 +63,7 @@ def _filter_config(config: ConfigParser) -> ConfigParser:
     filtered_config.read_dict(CONFIG_DEFAULTS)
     filtered_config.read_dict(config)
     for section in filtered_config.sections():
-        if section != 'job_linter':
+        if not section.startswith('job_linter'):
             filtered_config.remove_section(section)
     return filtered_config
 
