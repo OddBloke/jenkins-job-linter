@@ -149,7 +149,11 @@ class CheckShebang(ShellBuilderLinter):
         first_line = shell_script.splitlines()[0]
         if not first_line.startswith('#!'):
             # This will use Jenkins' default
-            return LintResult.SKIP, None
+            if self._config['job_linter:check_shebang'].getboolean(
+                    'allow_default_shebang'):
+                return LintResult.SKIP, None
+            else:
+                return LintResult.FAIL, "Shebang is Jenkins' default"
         if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
             # This has a non-shell shebang
             return LintResult.SKIP, None

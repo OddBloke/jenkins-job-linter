@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import configparser
 import itertools
 from xml.etree import ElementTree
 
@@ -23,6 +24,8 @@ from jenkins_job_linter.linters import (
     Linter,
     LintResult,
 )
+
+from .mocks import get_config
 
 FAILING_SHEBANG_ARGS = ['e', 'u', 'x'] + list(itertools.combinations('eux', 2))
 PASSING_SHEBANG_ARGS = itertools.permutations('eux')
@@ -61,7 +64,7 @@ class TestCheckShebang(ShellTest):
             builders=self._shell_builder_template.format(
                 shell_script=shell_string))
         tree = ElementTree.fromstring(xml_string)
-        linter = CheckShebang(tree, {})
+        linter = CheckShebang(tree, get_config())
         result, _ = linter.actual_check()
         assert result is expected
 
@@ -82,9 +85,20 @@ class TestCheckShebang(ShellTest):
             for shebang in shebangs)
         tree = ElementTree.fromstring(self._xml_template.format(
             builders=builders))
-        linter = CheckShebang(tree, {})
+        linter = CheckShebang(tree, get_config())
         result, _ = linter.actual_check()
         assert result is expected
+
+    def test_allow_default_shebang_false(self):
+        tree = ElementTree.fromstring(self._xml_template.format(
+            builders=self._shell_builder_template.format(
+                shell_script='just some code')))
+        config = configparser.ConfigParser()
+        config.read_dict({
+            'job_linter:check_shebang': {'allow_default_shebang': 'false'}})
+        linter = CheckShebang(tree, config)
+        result, _ = linter.actual_check()
+        assert result == LintResult.FAIL
 
 
 class TestCheckForEmptyShell(ShellTest):

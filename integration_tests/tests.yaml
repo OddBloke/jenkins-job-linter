@@ -90,3 +90,20 @@ cases:
           disable_linters=
             ensure_timestamps
       expect_success: True
+
+    - name: test_check_shebang_allow_default_configuration
+      description: |
+          Test that check_shebang can be configured to reject the default Jenkins shebang
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "just some code"
+              wrappers:
+                - timestamps
+      config: |
+          [job_linter:check_shebang]
+          allow_default_shebang = false
+      expected_output: |
+        test-job: checking shebang of shell builders: FAIL: Shebang is Jenkins' default
+      expect_success: False

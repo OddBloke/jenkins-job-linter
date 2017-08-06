@@ -29,6 +29,9 @@ CONFIG_DEFAULTS = {
     'job_linter': {
         'disable_linters': [],
     },
+    'job_linter:check_shebang': {
+        'allow_default_shebang': True,
+    },
 }  # type: Dict[str, Dict]
 
 
