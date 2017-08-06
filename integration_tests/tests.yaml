@@ -38,6 +38,32 @@ cases:
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh -ex
       expect_success: False
 
+    - name: test_non_shell_shebang
+      description: |
+          Test that a non-shell shebang does not cause a linting failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/usr/bin/env python"
+              wrappers:
+                - timestamps
+      expected_output: ""
+      expect_success: True
+
+    - name: test_absent_shebang
+      description: |
+          Test that a missing shebang does not cause a linting failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "just some code"
+              wrappers:
+                - timestamps
+      expected_output: ""
+      expect_success: True
+
     - name: test_empty_shell_builder
       description: |
           Test that empty shell builders cause linting failures

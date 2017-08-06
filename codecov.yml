@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project:
+      default: off
+      unit:
+        target: 100%
+        flags: unit
+      integration:
+        target: 100%
+        flags: integration
