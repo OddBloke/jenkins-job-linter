@@ -11,14 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
+from configparser import ConfigParser
 from unittest import mock
 
+from jenkins_job_linter import _filter_config
 from jenkins_job_linter.linters import Linter, LintResult
+
+COUNTER = itertools.count()
 
 
 def create_linter_mock(check_result=LintResult.PASS, check_msg=None, **kwargs):
     linter_mock = mock.create_autospec(Linter)
     linter_mock.return_value.check.return_value = check_result, check_msg
+    if 'name' not in kwargs:
+        linter_mock.name = 'linter-{}'.format(next(COUNTER))
     return linter_mock, kwargs
 
 
@@ -33,3 +40,7 @@ def create_mock_for_class(cls, **kwargs):
     for key, value in kwargs.items():
         setattr(created_mock, key, value)
     return created_mock
+
+
+def get_config():
+    return _filter_config(ConfigParser())

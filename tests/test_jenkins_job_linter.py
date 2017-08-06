@@ -20,7 +20,7 @@ from click.testing import CliRunner
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 from jenkins_job_linter.linters import Linter, LintResult
 
-from .mocks import create_mock_for_class
+from .mocks import create_mock_for_class, get_config
 
 
 class TestLintJobXML:
@@ -28,7 +28,7 @@ class TestLintJobXML:
     def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
-        config = configparser.ConfigParser()
+        config = get_config()
         lint_job_xml('job_name', mocker.sentinel.tree, config)
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
@@ -132,6 +132,17 @@ class TestLintJobsFromDirectory:
         mocker.patch('jenkins_job_linter.lint_job_xml')
         lint_jobs_from_directory('dirname', config)
         assert expected_sections_after == config.sections()
+
+    def test_defaults_used(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        defaults = {'job_linter': {'test': 'this'}}
+        mocker.patch('jenkins_job_linter.CONFIG_DEFAULTS', defaults)
+        lint_jobs_from_directory('dirname', configparser.ConfigParser())
+        passed_config = lint_job_xml_mock.call_args[0][2]
+        assert passed_config['job_linter']['test'] == 'this'
 
 
 class TestMain:
