@@ -57,3 +57,14 @@ cases:
           [job_linter]
           foo=bar
       expect_success: True
+
+    - name: test_disable_linters_config
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: ""
+      config: |
+          [job_linter]
+          disable_linters=
+            ensure_timestamps
+      expect_success: True

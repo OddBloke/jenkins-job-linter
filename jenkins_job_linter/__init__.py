@@ -16,6 +16,7 @@
 import os
 import sys
 from configparser import ConfigParser
+from typing import Dict  # noqa
 from typing import Optional
 from xml.etree import ElementTree
 
@@ -24,11 +25,20 @@ import click
 from jenkins_job_linter.linters import LINTERS
 
 
+CONFIG_DEFAULTS = {
+    'job_linter': {
+        'disable_linters': [],
+    },
+}  # type: Dict[str, Dict]
+
+
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
                  config: ConfigParser) -> bool:
     """Run all the linters against an XML tree."""
     success = True
     for linter in LINTERS:
+        if linter.name in config['job_linter']['disable_linters']:
+            continue
         result, text = linter(tree, config).check()
         if not result.value:
             success = False
@@ -47,6 +57,7 @@ def _filter_config(config: ConfigParser) -> ConfigParser:
     passed in remains unmodified.
     """
     filtered_config = ConfigParser()
+    filtered_config.read_dict(CONFIG_DEFAULTS)
     filtered_config.read_dict(config)
     for section in filtered_config.sections():
         if section != 'job_linter':
