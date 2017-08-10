@@ -16,23 +16,13 @@
 import os
 import sys
 from configparser import ConfigParser
-from typing import Any, Dict  # noqa
 from typing import Optional
 from xml.etree import ElementTree
 
 import click
 
+from jenkins_job_linter.config import _filter_config
 from jenkins_job_linter.linters import LINTERS
-
-
-CONFIG_DEFAULTS = {
-    'job_linter': {
-        'disable_linters': [],
-    },
-    'job_linter:check_shebang': {
-        'allow_default_shebang': True,
-    },
-}  # type: Dict[str, Dict[str, Any]]
 
 
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
@@ -50,22 +40,6 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
                 output += ': {}'.format(text)
             print(output)
     return success
-
-
-def _filter_config(config: ConfigParser) -> ConfigParser:
-    """
-    Return a ConfigParser with only the job_linter section of the one passed.
-
-    This creates a new ConfigParser and removes sections from that, so the one
-    passed in remains unmodified.
-    """
-    filtered_config = ConfigParser()
-    filtered_config.read_dict(CONFIG_DEFAULTS)
-    filtered_config.read_dict(config)
-    for section in filtered_config.sections():
-        if not section.startswith('job_linter'):
-            filtered_config.remove_section(section)
-    return filtered_config
 
 
 def lint_jobs_from_directory(compiled_job_directory: str,

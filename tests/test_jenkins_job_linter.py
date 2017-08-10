@@ -17,12 +17,7 @@ import os
 import pytest
 from click.testing import CliRunner
 
-from jenkins_job_linter import (
-    _filter_config,
-    lint_job_xml,
-    lint_jobs_from_directory,
-    main,
-)
+from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 from jenkins_job_linter.linters import Linter, LintResult
 
 from .mocks import create_mock_for_class, get_config
@@ -72,18 +67,6 @@ class TestLintJobXML:
         assert 1 == linter_mocks[1].call_count
 
 
-class TestFilterConfig:
-
-    def test_filter_by_prefix(self, mocker):
-        mocker.patch('jenkins_job_linter.CONFIG_DEFAULTS', {})
-        config = configparser.ConfigParser()
-        wont_filter = ['job_linter', 'job_linter:linter', 'job_linter-thing']
-        will_filter = ['jenkins', 'jenkins_jobs', 'whatever-else']
-        config.read_dict({k: {} for k in wont_filter + will_filter})
-        filtered_config = _filter_config(config)
-        assert set(wont_filter) == set(filtered_config.sections())
-
-
 class TestLintJobsFromDirectory:
 
     def test_empty_directory(self, mocker):
@@ -123,7 +106,7 @@ class TestLintJobsFromDirectory:
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
 
     def test_filtered_config_passed_to_lint_job_xml(self, mocker):
-        mocker.patch('jenkins_job_linter.CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.CONFIG_DEFAULTS', {})
         config = configparser.ConfigParser()
         config.read_dict({'jenkins': {},
                           'job_builder': {},
@@ -157,7 +140,7 @@ class TestLintJobsFromDirectory:
         mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
         defaults = {'job_linter': {'test': 'this'}}
-        mocker.patch('jenkins_job_linter.CONFIG_DEFAULTS', defaults)
+        mocker.patch('jenkins_job_linter.config.CONFIG_DEFAULTS', defaults)
         lint_jobs_from_directory('dirname', configparser.ConfigParser())
         passed_config = lint_job_xml_mock.call_args[0][2]
         assert passed_config['job_linter']['test'] == 'this'
