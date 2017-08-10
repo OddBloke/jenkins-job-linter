@@ -16,7 +16,7 @@
 import os
 import sys
 from configparser import ConfigParser
-from typing import Dict  # noqa
+from typing import Any, Dict  # noqa
 from typing import Optional
 from xml.etree import ElementTree
 
@@ -32,7 +32,7 @@ CONFIG_DEFAULTS = {
     'job_linter:check_shebang': {
         'allow_default_shebang': True,
     },
-}  # type: Dict[str, Dict]
+}  # type: Dict[str, Dict[str, Any]]
 
 
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
