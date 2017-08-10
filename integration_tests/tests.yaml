@@ -78,6 +78,22 @@ cases:
         test-job: checking shell builder shell scripts are not empty: FAIL
       expect_success: False
 
+    - name: test_multiple_shell_builders
+      description: |
+          Test that more than just the first shell builder is linted
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/usr/bin/env python"
+                - shell: "just some code"
+                - shell: ""
+              wrappers:
+                - timestamps
+      expected_output: |
+        test-job: checking shell builder shell scripts are not empty: FAIL
+      expect_success: False
+
     - name: test_disable_linters_config
       description: |
           Test that disable_linters will skip checks (specifically timestamps in this case)
