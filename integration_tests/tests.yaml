@@ -38,6 +38,34 @@ cases:
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh -ex
       expect_success: False
 
+    - name: test_shell_shebang_with_no_options
+      description: |
+          Test that check_shebang rejects shell shebangs with no options (by default)
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh"
+              wrappers:
+                - timestamps
+      expected_output: |
+        test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh
+      expect_success: False
+
+    - name: test_shell_shebang_with_no_recognisable_options
+      description: |
+          Test that check_shebang rejects shell shebangs with no recognisable options
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh not opts"
+              wrappers:
+                - timestamps
+      expected_output: |
+        test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh not opts
+      expect_success: False
+
     - name: test_non_shell_shebang
       description: |
           Test that a non-shell shebang does not cause a linting failure
@@ -123,3 +151,68 @@ cases:
       expected_output: |
         test-job: checking shebang of shell builders: FAIL: Shebang is Jenkins' default
       expect_success: False
+
+    - name: test_check_shebang_no_required_shell_options
+      description: |
+          Test that check_shebang can be configured to require no shell options
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh"
+              wrappers:
+                - timestamps
+      config: |
+          [job_linter:check_shebang]
+          required_shell_options =
+      expected_output: ""
+      expect_success: True
+
+    - name: test_check_shebang_required_shell_options_failure
+      description: |
+          Test that check_shebang required_shell_options can cause failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -opt"
+              wrappers:
+                - timestamps
+      config: |
+          [job_linter:check_shebang]
+          required_shell_options = opts
+      expected_output: |
+        test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh -opt
+      expect_success: False
+
+    - name: test_check_shebang_required_shell_options_success
+      description: |
+          Test that check_shebang required_shell_options are checked
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -e"
+              wrappers:
+                - timestamps
+      config: |
+          [job_linter:check_shebang]
+          required_shell_options = e
+      expected_output: ""
+      expect_success: True
+
+    - name: test_check_shebang_required_shell_options_permits_superset
+      description: |
+          Test that check_shebang required_shell_options are checked
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -eux"
+              wrappers:
+                - timestamps
+      config: |
+          [job_linter:check_shebang]
+          required_shell_options = e
+      expected_output: ""
+      expect_success: True

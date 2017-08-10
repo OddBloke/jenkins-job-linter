@@ -37,4 +37,8 @@ Configuration Options
 ``allow_default_shebang``
     A boolean defining whether the default Jenkins shebang should be
     permitted in shell builders (i.e. should shell builders be
-    permitted to have no shebang).
+    permitted to have no shebang).  Defaults to True.
+
+``required_shell_options``
+    A string of the shell options that are required to be present in
+    the shebang of shell builders.  Defaults to "eux".

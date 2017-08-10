@@ -100,6 +100,27 @@ class TestCheckShebang(ShellTest):
         result, _ = linter.actual_check()
         assert result == LintResult.FAIL
 
+    @pytest.mark.parametrize('expected,required,shell_string', [
+        (LintResult.PASS, '', '#!/bin/sh'),
+        (LintResult.FAIL, 'e', '#!/bin/sh'),
+        (LintResult.FAIL, 'e', '#!/bin/sh not options'),
+        (LintResult.PASS, 'e', '#!/bin/sh -e'),
+        (LintResult.PASS, 'ex', '#!/bin/sh -ex'),
+        (LintResult.PASS, 'ex', '#!/bin/sh -xe'),
+        (LintResult.PASS, 'ex', '#!/bin/sh -xeu'),
+    ])
+    def test_required_shell_options(self, expected, required, shell_string):
+        xml_string = self._xml_template.format(
+            builders=self._shell_builder_template.format(
+                shell_script=shell_string))
+        config = configparser.ConfigParser()
+        config.read_dict({
+            'job_linter:check_shebang': {'required_shell_options': required}})
+        tree = ElementTree.fromstring(xml_string)
+        linter = CheckShebang(tree, config)
+        result, _ = linter.actual_check()
+        assert result is expected
+
 
 class TestCheckForEmptyShell(ShellTest):
 
