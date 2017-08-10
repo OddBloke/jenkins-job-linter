@@ -15,7 +15,7 @@
 import re
 from configparser import ConfigParser
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple  # noqa
 from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
@@ -36,6 +36,8 @@ class LintResult(Enum):
 
 class Linter:
     """A super-class capturing the common linting pattern."""
+
+    default_config = {}  # type: Dict[str, Any]
 
     def __init__(self, tree: ElementTree.ElementTree,
                  config: ConfigParser) -> None:
@@ -63,17 +65,11 @@ class Linter:
         """Output-friendly description of what this Linter does."""
         raise NotImplementedError  # pragma: nocover
 
-    @property
-    def name(self) -> str:
-        """Name for this linter (used in configuration)."""
-        raise NotImplementedError  # pragma: nocover
-
 
 class EnsureTimestamps(Linter):
     """Ensure that a job is configured with timestamp output."""
 
     description = 'checking for timestamps'
-    name = 'ensure_timestamps'
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
@@ -118,7 +114,6 @@ class CheckForEmptyShell(ShellBuilderLinter):
     """Ensure that shell builders in a job have some content."""
 
     description = 'checking shell builder shell scripts are not empty'
-    name = 'check_for_empty_shell'
 
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
                                                                 None]:
@@ -138,8 +133,11 @@ class CheckShebang(ShellBuilderLinter):
     Shell builders with no shebang or a non-shell shebang are skipped.
     """
 
+    default_config = {
+        'allow_default_shebang': True,
+    }
+
     description = 'checking shebang of shell builders'
-    name = 'check_shebang'
 
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
                                                                 Optional[str]]:
@@ -165,4 +163,4 @@ class CheckShebang(ShellBuilderLinter):
 
 
 extension_manager = ExtensionManager(namespace='jjl.linters')
-LINTERS = [ext.plugin for ext in extension_manager]
+LINTERS = {ext.name: ext.plugin for ext in extension_manager}

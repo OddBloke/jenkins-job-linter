@@ -18,14 +18,14 @@ from unittest import mock
 from jenkins_job_linter import _filter_config
 from jenkins_job_linter.linters import Linter, LintResult
 
-COUNTER = itertools.count()
+NAMES = ('linter-{}'.format(num) for num in itertools.count())
 
 
-def create_linter_mock(check_result=LintResult.PASS, check_msg=None, **kwargs):
+def create_linter_mock(check_result=LintResult.PASS, check_msg=None,
+                       default_config=None, **kwargs):
     linter_mock = mock.create_autospec(Linter)
     linter_mock.return_value.check.return_value = check_result, check_msg
-    if 'name' not in kwargs:
-        linter_mock.name = 'linter-{}'.format(next(COUNTER))
+    linter_mock.default_config = default_config or {}
     return linter_mock, kwargs
 
 
@@ -44,3 +44,7 @@ def create_mock_for_class(cls, **kwargs):
 
 def get_config():
     return _filter_config(ConfigParser())
+
+
+def get_LINTERS_for_linters(linters):
+    return dict(zip(NAMES, linters))

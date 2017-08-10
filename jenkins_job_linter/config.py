@@ -13,16 +13,18 @@
 # limitations under the License.
 """Handle configuration for jenkins-job-linter."""
 from configparser import ConfigParser
-from typing import Any, Dict  # noqa
+from typing import Any, Dict
 
-CONFIG_DEFAULTS = {
-    'job_linter': {
-        'disable_linters': [],
-    },
-    'job_linter:check_shebang': {
-        'allow_default_shebang': True,
-    },
-}  # type: Dict[str, Dict[str, Any]]
+from jenkins_job_linter.linters import LINTERS
+
+GLOBAL_CONFIG_DEFAULTS = {
+    'disable_linters': [],
+}  # type: Dict[str, Any]
+
+
+def _get_default_linter_configs() -> Dict[str, Dict[str, Any]]:
+    return {'job_linter:{}'.format(name): linter.default_config
+            for name, linter in LINTERS.items()}
 
 
 def _filter_config(config: ConfigParser) -> ConfigParser:
@@ -33,7 +35,8 @@ def _filter_config(config: ConfigParser) -> ConfigParser:
     passed in remains unmodified.
     """
     filtered_config = ConfigParser()
-    filtered_config.read_dict(CONFIG_DEFAULTS)
+    filtered_config.read_dict({'job_linter': GLOBAL_CONFIG_DEFAULTS})
+    filtered_config.read_dict(_get_default_linter_configs())
     filtered_config.read_dict(config)
     for section in filtered_config.sections():
         if not section.startswith('job_linter'):
