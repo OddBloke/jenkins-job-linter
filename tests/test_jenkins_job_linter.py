@@ -27,7 +27,8 @@ class TestLintJobXML:
 
     def test_all_linters_called_with_tree_and_config(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
-        mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
+        mocker.patch('jenkins_job_linter.LINTERS', {
+            linter_mock.name: linter_mock for linter_mock in linter_mocks})
         config = get_config()
         lint_job_xml('job_name', mocker.sentinel.tree, config)
         for linter_mock in linter_mocks:
@@ -46,21 +47,24 @@ class TestLintJobXML:
         for result in results:
             mock = create_mock_for_class(Linter, check_result=result)
             linter_mocks.append(mock)
-        mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
+        mocker.patch('jenkins_job_linter.LINTERS', {
+            linter_mock.name: linter_mock for linter_mock in linter_mocks})
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is expected
 
     def test_linters_can_return_text(self, mocker):
         linter_mock = create_mock_for_class(
             Linter, check_result=LintResult.FAIL, check_msg='msg')
-        mocker.patch('jenkins_job_linter.LINTERS', [linter_mock])
+        mocker.patch('jenkins_job_linter.LINTERS', {
+            linter_mock.name: linter_mock})
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             mocker.MagicMock()) is False
 
     def test_disable_linters_config(self, mocker):
         linter_mocks = [create_mock_for_class(Linter, name='disable_me'),
                         create_mock_for_class(Linter, name='not_me')]
-        mocker.patch('jenkins_job_linter.LINTERS', linter_mocks)
+        mocker.patch('jenkins_job_linter.LINTERS', {
+            linter_mock.name: linter_mock for linter_mock in linter_mocks})
         config = {'job_linter': {'disable_linters': ['disable_me']}}
         lint_job_xml('job_name', mocker.Mock(), config)
         assert 0 == linter_mocks[0].call_count

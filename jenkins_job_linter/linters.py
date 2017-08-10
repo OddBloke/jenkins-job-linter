@@ -165,4 +165,4 @@ class CheckShebang(ShellBuilderLinter):
 
 
 extension_manager = ExtensionManager(namespace='jjl.linters')
-LINTERS = [ext.plugin for ext in extension_manager]
+LINTERS = {ext.name: ext.plugin for ext in extension_manager}
