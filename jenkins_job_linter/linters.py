@@ -57,7 +57,9 @@ class Linter:
         raise NotImplementedError  # pragma: nocover
 
     def check(self) -> Tuple[LintResult, Optional[str]]:
-        """Wrap actual_check in nice output."""
+        """Check the root tag of the object and call actual_check."""
+        if self._tree.getroot().tag != self.root_tag:
+            return LintResult.SKIP, None
         return self.actual_check()
 
     @property
@@ -65,8 +67,19 @@ class Linter:
         """Output-friendly description of what this Linter does."""
         raise NotImplementedError  # pragma: nocover
 
+    @property
+    def root_tag(self) -> str:
+        """XML tag name that this linter operates against."""
+        raise NotImplementedError  # pragma: nocover
 
-class EnsureTimestamps(Linter):
+
+class JobLinter(Linter):
+    """A Linter that should operate against Jenkins job objects."""
+
+    root_tag = 'project'
+
+
+class EnsureTimestamps(JobLinter):
     """Ensure that a job is configured with timestamp output."""
 
     description = 'checking for timestamps'
@@ -81,7 +94,7 @@ class EnsureTimestamps(Linter):
         return result, None
 
 
-class ShellBuilderLinter(Linter):
+class ShellBuilderLinter(JobLinter):
     """A linter that operates on the shell builders of jobs."""
 
     _xpath = './builders/hudson.tasks.Shell/command'

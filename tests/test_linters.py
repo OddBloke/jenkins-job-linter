@@ -49,6 +49,13 @@ class ShellTest:
             <command>{shell_script}</command>
         </hudson.tasks.Shell>'''
 
+    def test_non_project_skipped(self):
+        tree = _elementtree_from_str('<not_project/>')
+        linter = CheckForEmptyShell(tree, {})
+        result, text = linter.check()
+        assert result is LintResult.SKIP
+        assert text is None
+
 
 class TestCheckShebang(ShellTest):
 
@@ -69,7 +76,7 @@ class TestCheckShebang(ShellTest):
                 shell_script=shell_string))
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(tree, get_config())
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result is expected
 
     def test_project_with_no_shell_part_skipped(self):
@@ -90,7 +97,7 @@ class TestCheckShebang(ShellTest):
         tree = _elementtree_from_str(self._xml_template.format(
             builders=builders))
         linter = CheckShebang(tree, get_config())
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result is expected
 
     def test_allow_default_shebang_false(self):
@@ -102,7 +109,7 @@ class TestCheckShebang(ShellTest):
         config.read_dict({
             'job_linter:check_shebang': {'allow_default_shebang': 'false'}})
         linter = CheckShebang(tree, config)
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result == LintResult.FAIL
 
     @pytest.mark.parametrize('expected,required,shell_string', [
@@ -123,7 +130,7 @@ class TestCheckShebang(ShellTest):
             'job_linter:check_shebang': {'required_shell_options': required}})
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(tree, config)
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result is expected
 
 
@@ -131,19 +138,20 @@ class TestCheckForEmptyShell(ShellTest):
 
     @pytest.mark.parametrize('expected,script', (
         (LintResult.FAIL, ''), (LintResult.PASS, '...')))
-    def test_actual_check(self, expected, script):
+    def test_linter(self, expected, script):
         tree = _elementtree_from_str(
             self._xml_template.format(
                 builders=self._shell_builder_template.format(
                     shell_script=script)))
         linter = CheckForEmptyShell(tree, {})
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result is expected
 
 
 class TestEnsureTimestamps:
 
     @pytest.mark.parametrize('expected,xml_string', (
+        (LintResult.SKIP, '<not_a_project/>'),
         (LintResult.FAIL, '<project/>'),
         (LintResult.PASS, '''\
             <project>
@@ -154,7 +162,7 @@ class TestEnsureTimestamps:
     def test_linter(self, expected, xml_string):
         tree = _elementtree_from_str(xml_string)
         linter = EnsureTimestamps(tree, {})
-        result, _ = linter.actual_check()
+        result, _ = linter.check()
         assert result is expected
 
 
@@ -163,6 +171,7 @@ class TestLinter:
     class LintTestSubclass(Linter):
 
         description = 'test description'
+        root_tag = 'test_tag'
 
         def actual_check(self):
             return self._config['_mock_result']
@@ -172,3 +181,12 @@ class TestLinter:
         mock_result = mocker.sentinel.result, mocker.sentinel.text
         linter = self.LintTestSubclass(tree, {'_mock_result': mock_result})
         assert mock_result == linter.check()
+
+    def test_wrong_root_tag_is_skipped_without_check(self, mocker):
+        tree = _elementtree_from_str('<not_right/>')
+        linter = self.LintTestSubclass(tree, {})
+        linter.actual_check = mocker.Mock()
+        result, text = linter.check()
+        assert result == LintResult.SKIP
+        assert text is None
+        assert 0 == linter.actual_check.call_count
