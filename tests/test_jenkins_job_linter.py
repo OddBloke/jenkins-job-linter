@@ -111,7 +111,8 @@ class TestLintJobsFromDirectory:
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
 
     def test_filtered_config_passed_to_lint_job_xml(self, mocker):
-        mocker.patch('jenkins_job_linter.config.CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.LINTERS', {})
+        mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
         config = configparser.ConfigParser()
         config.read_dict({'jenkins': {},
                           'job_builder': {},
@@ -144,8 +145,9 @@ class TestLintJobsFromDirectory:
         listdir_mock.return_value = ['some', 'files']
         mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
-        defaults = {'job_linter': {'test': 'this'}}
-        mocker.patch('jenkins_job_linter.config.CONFIG_DEFAULTS', defaults)
+        defaults = {'test': 'this'}
+        mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS',
+                     defaults)
         lint_jobs_from_directory('dirname', configparser.ConfigParser())
         passed_config = lint_job_xml_mock.call_args[0][2]
         assert passed_config['job_linter']['test'] == 'this'

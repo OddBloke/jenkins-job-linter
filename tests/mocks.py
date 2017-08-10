@@ -21,9 +21,11 @@ from jenkins_job_linter.linters import Linter, LintResult
 NAMES = ('linter-{}'.format(num) for num in itertools.count())
 
 
-def create_linter_mock(check_result=LintResult.PASS, check_msg=None, **kwargs):
+def create_linter_mock(check_result=LintResult.PASS, check_msg=None,
+                       default_config=None, **kwargs):
     linter_mock = mock.create_autospec(Linter)
     linter_mock.return_value.check.return_value = check_result, check_msg
+    linter_mock.default_config = default_config or {}
     return linter_mock, kwargs
 
 

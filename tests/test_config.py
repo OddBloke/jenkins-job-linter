@@ -13,13 +13,40 @@
 # limitations under the License.
 import configparser
 
-from jenkins_job_linter import _filter_config
+from jenkins_job_linter.config import (
+    _filter_config,
+    _get_default_linter_configs,
+)
+from jenkins_job_linter.linters import Linter
+
+from .mocks import create_mock_for_class
+
+
+class TestGetDefaultLinterConfigs:
+
+    def test_no_linters_returns_empty_dict(self, mocker):
+        mocker.patch('jenkins_job_linter.config.LINTERS', {})
+        assert {} == _get_default_linter_configs()
+
+    def test_with_linters(self, mocker):
+        default_config = {'key': 'value', 'other_key': ['some', 'values']}
+        linter_with_config = create_mock_for_class(
+            Linter, default_config=default_config)
+        mocker.patch('jenkins_job_linter.config.LINTERS', {
+            'no_config': create_mock_for_class(Linter),
+            'some_config': linter_with_config,
+        })
+        assert {
+            'job_linter:no_config': {},
+            'job_linter:some_config': default_config,
+        } == _get_default_linter_configs()
 
 
 class TestFilterConfig:
 
     def test_filter_by_prefix(self, mocker):
-        mocker.patch('jenkins_job_linter.config.CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.LINTERS', {})
         config = configparser.ConfigParser()
         wont_filter = ['job_linter', 'job_linter:linter', 'job_linter-thing']
         will_filter = ['jenkins', 'jenkins_jobs', 'whatever-else']

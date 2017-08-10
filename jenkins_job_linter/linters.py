@@ -15,7 +15,7 @@
 import re
 from configparser import ConfigParser
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple  # noqa
 from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
@@ -36,6 +36,8 @@ class LintResult(Enum):
 
 class Linter:
     """A super-class capturing the common linting pattern."""
+
+    default_config = {}  # type: Dict[str, Any]
 
     def __init__(self, tree: ElementTree.ElementTree,
                  config: ConfigParser) -> None:
@@ -130,6 +132,10 @@ class CheckShebang(ShellBuilderLinter):
 
     Shell builders with no shebang or a non-shell shebang are skipped.
     """
+
+    default_config = {
+        'allow_default_shebang': True,
+    }
 
     description = 'checking shebang of shell builders'
 
