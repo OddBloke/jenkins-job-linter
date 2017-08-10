@@ -135,6 +135,7 @@ class CheckShebang(ShellBuilderLinter):
 
     default_config = {
         'allow_default_shebang': True,
+        'required_shell_options': 'eux',
     }
 
     description = 'checking shebang of shell builders'
@@ -155,10 +156,20 @@ class CheckShebang(ShellBuilderLinter):
         if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
             # This has a non-shell shebang
             return LintResult.SKIP, None
+        required_shell_options_set = set(
+            self._config['job_linter:check_shebang']['required_shell_options'])
+        if not required_shell_options_set:
+            return LintResult.PASS, None
         line_parts = first_line.split(' ')
-        if (len(line_parts) < 2
-                or re.match(r'-[eux]{3}', line_parts[1]) is None):
-            return LintResult.FAIL, 'Shebang is {}'.format(first_line)
+        fail_result = LintResult.FAIL, 'Shebang is {}'.format(first_line)
+        if len(line_parts) < 2:
+            return fail_result
+        shell_options_match = re.match(r'-([a-z]+)', line_parts[1])
+        if shell_options_match is None:
+            return fail_result
+        if not required_shell_options_set.issubset(
+                set(shell_options_match.group(1))):
+            return fail_result
         return LintResult.PASS, None
 
 
