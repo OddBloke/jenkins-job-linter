@@ -22,7 +22,7 @@ from xml.etree import ElementTree
 import click
 
 from jenkins_job_linter.config import _filter_config
-from jenkins_job_linter.linters import LINTERS
+from jenkins_job_linter.linters import LINTERS, LintContext
 
 
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
@@ -32,7 +32,7 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     for linter_name, linter in LINTERS.items():
         if linter_name in config['job_linter']['disable_linters']:
             continue
-        result, text = linter(tree, config).check()
+        result, text = linter(LintContext(tree), config).check()
         if not result.value:
             success = False
             output = '{}: {}: FAIL'.format(job_name, linter.description)

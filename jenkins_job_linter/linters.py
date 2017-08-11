@@ -21,6 +21,24 @@ from xml.etree import ElementTree
 from stevedore.extension import ExtensionManager
 
 
+class LintContext:
+    """
+    The context in which a linter should run.
+
+    This contains all of the information about the object under test, and the
+    environment in which the linter is running.
+    """
+
+    def __init__(self, tree: ElementTree.ElementTree) -> None:
+        """
+        Create a LintContext.
+
+        :param tree:
+            A Jenkins XML file parsed in to an ElementTree.
+        """
+        self.tree = tree
+
+
 class LintResult(Enum):
     """
     The result of a linting check (i.e. pass/fail/skip).
@@ -39,17 +57,16 @@ class Linter:
 
     default_config = {}  # type: Dict[str, Any]
 
-    def __init__(self, tree: ElementTree.ElementTree,
-                 config: ConfigParser) -> None:
+    def __init__(self, ctx: LintContext, config: ConfigParser) -> None:
         """
         Create an instance of a Linter.
 
-        :param tree:
-            A Jenkins job XML file parsed in to an ElementTree.
+        :param ctx:
+            A LintContext which the linter should operate against.
         :param config:
             The configuration for this linting run.
         """
-        self._tree = tree
+        self._ctx = ctx
         self._config = config
 
     def actual_check(self) -> Tuple[LintResult, Optional[str]]:
@@ -58,7 +75,7 @@ class Linter:
 
     def check(self) -> Tuple[LintResult, Optional[str]]:
         """Check the root tag of the object and call actual_check."""
-        if self._tree.getroot().tag != self.root_tag:
+        if self._ctx.tree.getroot().tag != self.root_tag:
             return LintResult.SKIP, None
         return self.actual_check()
 
@@ -89,7 +106,7 @@ class EnsureTimestamps(JobLinter):
     def actual_check(self) -> Tuple[LintResult, Optional[str]]:
         """Check that the TimestamperBuildWrapper element is present."""
         result = LintResult.FAIL
-        if self._tree.find(self._xpath) is not None:
+        if self._ctx.tree.find(self._xpath) is not None:
             result = LintResult.PASS
         return result, None
 
@@ -107,7 +124,7 @@ class ShellBuilderLinter(JobLinter):
         immediately.  (Note also that it assumes that there will only be text
         to return on that single failure.)
         """
-        shell_builders = self._tree.findall(self._xpath)
+        shell_builders = self._ctx.tree.findall(self._xpath)
         if not shell_builders:
             return LintResult.SKIP, None
         for shell_builder in shell_builders:

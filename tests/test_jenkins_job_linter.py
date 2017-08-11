@@ -29,12 +29,15 @@ class TestLintJobXML:
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS',
                      get_LINTERS_for_linters(linter_mocks))
+        lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
         config = get_config()
         lint_job_xml('job_name', mocker.sentinel.tree, config)
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
-            assert linter_mock.call_args == mocker.call(mocker.sentinel.tree,
-                                                        config)
+            assert linter_mock.call_args == mocker.call(
+                lint_context_mock.return_value, config)
+        for call_args in lint_context_mock.call_args_list:
+            assert mocker.call(mocker.sentinel.tree) == call_args
 
     @pytest.mark.parametrize('expected,results', (
         (True, (LintResult.PASS,)),
