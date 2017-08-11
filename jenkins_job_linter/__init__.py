@@ -15,14 +15,14 @@
 """Run a series of checks against compiled job XML."""
 import os
 import sys
-from configparser import ConfigParser
-from typing import Optional
+from configparser import ConfigParser, SectionProxy
+from typing import Optional, cast
 from xml.etree import ElementTree
 
 import click
 
 from jenkins_job_linter.config import _filter_config
-from jenkins_job_linter.linters import LINTERS
+from jenkins_job_linter.linters import LINTERS, LintContext
 
 
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
@@ -32,7 +32,11 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     for linter_name, linter in LINTERS.items():
         if linter_name in config['job_linter']['disable_linters']:
             continue
-        result, text = linter(tree, config).check()
+        # This cast is needed until
+        # https://github.com/python/typeshed/pull/1527 is fixed
+        section = cast(SectionProxy,
+                       config['job_linter:{}'.format(linter_name)])
+        result, text = linter(LintContext(section, tree)).check()
         if not result.value:
             success = False
             output = '{}: {}: FAIL'.format(job_name, linter.description)

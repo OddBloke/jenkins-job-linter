@@ -20,21 +20,36 @@ from click.testing import CliRunner
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 from jenkins_job_linter.linters import Linter, LintResult
 
-from .mocks import create_mock_for_class, get_config, get_LINTERS_for_linters
+from .mocks import create_mock_for_class, get_LINTERS_for_linters
 
 
 class TestLintJobXML:
 
-    def test_all_linters_called_with_tree_and_config(self, mocker):
+    def test_all_linters_called_with_tree(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mocker.patch('jenkins_job_linter.LINTERS',
                      get_LINTERS_for_linters(linter_mocks))
-        config = get_config()
+        lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
+        config = mocker.MagicMock()
         lint_job_xml('job_name', mocker.sentinel.tree, config)
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
-            assert linter_mock.call_args == mocker.call(mocker.sentinel.tree,
-                                                        config)
+            assert linter_mock.call_args == mocker.call(
+                lint_context_mock.return_value)
+        for call_args in lint_context_mock.call_args_list:
+            assert mocker.call(mocker.ANY, mocker.sentinel.tree) == call_args
+
+    def test_lintcontext_passed_filtered_config(self, mocker):
+        linters = get_LINTERS_for_linters([create_mock_for_class(Linter)])
+        mocker.patch('jenkins_job_linter.LINTERS', linters)
+        config = configparser.ConfigParser()
+        config.read_dict({
+            'job_linter': {'disable_linters': []},
+            'job_linter:{}'.format(list(linters.keys())[0]): {'k': 'v'}})
+        lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
+        lint_job_xml('job_name', mocker.sentinel.tree, config)
+        lint_context_config = lint_context_mock.call_args[0][0]
+        assert 'v' == lint_context_config['k']
 
     @pytest.mark.parametrize('expected,results', (
         (True, (LintResult.PASS,)),
@@ -66,7 +81,10 @@ class TestLintJobXML:
             'not_me': create_mock_for_class(Linter),
         }
         mocker.patch('jenkins_job_linter.LINTERS', linters)
-        config = {'job_linter': {'disable_linters': ['disable_me']}}
+        config = {
+            'job_linter': {'disable_linters': ['disable_me']},
+            'job_linter:not_me': {},
+        }
         lint_job_xml('job_name', mocker.Mock(), config)
         assert 0 == linters['disable_me'].call_count
         assert 1 == linters['not_me'].call_count

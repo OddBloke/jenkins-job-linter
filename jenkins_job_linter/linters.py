@@ -13,12 +13,36 @@
 # limitations under the License.
 """A collection of linters for Jenkins job XML."""
 import re
-from configparser import ConfigParser
+from configparser import SectionProxy
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple  # noqa
 from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
+
+
+class LintContext:
+    """
+    The context in which a linter should run.
+
+    This contains all of the information about the object under test, and the
+    environment in which the linter is running.
+    """
+
+    def __init__(self,
+                 config: SectionProxy,
+                 tree: ElementTree.ElementTree) -> None:
+        """
+        Create a LintContext.
+
+        :param config:
+            The configparser.SectionProxy of the parsed configuration for this
+            particular linter.
+        :param tree:
+            A Jenkins XML file parsed in to an ElementTree.
+        """
+        self.config = config
+        self.tree = tree
 
 
 class LintResult(Enum):
@@ -39,18 +63,14 @@ class Linter:
 
     default_config = {}  # type: Dict[str, Any]
 
-    def __init__(self, tree: ElementTree.ElementTree,
-                 config: ConfigParser) -> None:
+    def __init__(self, ctx: LintContext) -> None:
         """
         Create an instance of a Linter.
 
-        :param tree:
-            A Jenkins job XML file parsed in to an ElementTree.
-        :param config:
-            The configuration for this linting run.
+        :param ctx:
+            A LintContext which the linter should operate against.
         """
-        self._tree = tree
-        self._config = config
+        self._ctx = ctx
 
     def actual_check(self) -> Tuple[LintResult, Optional[str]]:
         """Perform the actual linting check."""
@@ -58,7 +78,7 @@ class Linter:
 
     def check(self) -> Tuple[LintResult, Optional[str]]:
         """Check the root tag of the object and call actual_check."""
-        if self._tree.getroot().tag != self.root_tag:
+        if self._ctx.tree.getroot().tag != self.root_tag:
             return LintResult.SKIP, None
         return self.actual_check()
 
@@ -89,7 +109,7 @@ class EnsureTimestamps(JobLinter):
     def actual_check(self) -> Tuple[LintResult, Optional[str]]:
         """Check that the TimestamperBuildWrapper element is present."""
         result = LintResult.FAIL
-        if self._tree.find(self._xpath) is not None:
+        if self._ctx.tree.find(self._xpath) is not None:
             result = LintResult.PASS
         return result, None
 
@@ -107,7 +127,7 @@ class ShellBuilderLinter(JobLinter):
         immediately.  (Note also that it assumes that there will only be text
         to return on that single failure.)
         """
-        shell_builders = self._tree.findall(self._xpath)
+        shell_builders = self._ctx.tree.findall(self._xpath)
         if not shell_builders:
             return LintResult.SKIP, None
         for shell_builder in shell_builders:
@@ -161,8 +181,7 @@ class CheckShebang(ShellBuilderLinter):
         first_line = shell_script.splitlines()[0]
         if not first_line.startswith('#!'):
             # This will use Jenkins' default
-            if self._config.getboolean('job_linter:check_shebang',
-                                       'allow_default_shebang'):
+            if self._ctx.config.getboolean('allow_default_shebang'):
                 return LintResult.SKIP, None
             else:
                 return LintResult.FAIL, "Shebang is Jenkins' default"
@@ -170,7 +189,7 @@ class CheckShebang(ShellBuilderLinter):
             # This has a non-shell shebang
             return LintResult.SKIP, None
         required_shell_options_set = set(
-            self._config['job_linter:check_shebang']['required_shell_options'])
+            self._ctx.config['required_shell_options'])
         if not required_shell_options_set:
             return LintResult.PASS, None
         line_parts = first_line.split(' ')
