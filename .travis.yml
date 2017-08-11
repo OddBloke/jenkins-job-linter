@@ -2,6 +2,8 @@ language: python
 dist: trusty
 sudo: disabled
 
+cache: pip
+
 python: 3.6
 env:
  - TOX_ENV=codecov
