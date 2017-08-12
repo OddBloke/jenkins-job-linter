@@ -25,18 +25,19 @@ from .mocks import create_mock_for_class, get_config, mock_LINTERS
 
 class TestLintJobXML:
 
-    def test_all_linters_called_with_tree(self, mocker):
+    def test_all_linters_called_with_tree_and_run_ctx(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mock_LINTERS(mocker, linter_mocks)
         lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
-        lint_job_xml(
-            mocker.Mock(), 'job_name', mocker.sentinel.tree, get_config())
+        run_ctx = mocker.Mock()
+        lint_job_xml(run_ctx, 'job_name', mocker.sentinel.tree, get_config())
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
             assert linter_mock.call_args == mocker.call(
                 lint_context_mock.return_value)
         for call_args in lint_context_mock.call_args_list:
-            assert mocker.call(mocker.ANY, mocker.sentinel.tree) == call_args
+            assert mocker.call(
+                mocker.ANY, run_ctx, mocker.sentinel.tree) == call_args
 
     def test_lintcontext_passed_filtered_config(self, mocker):
         linters = mock_LINTERS(mocker, [create_mock_for_class(Linter)])

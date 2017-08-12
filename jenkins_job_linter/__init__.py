@@ -40,7 +40,7 @@ def lint_job_xml(ctx: RunContext, job_name: str, tree: ElementTree.ElementTree,
         # https://github.com/python/typeshed/pull/1527 is fixed
         section = cast(SectionProxy,
                        config['job_linter:{}'.format(linter_name)])
-        result, text = linter(LintContext(section, tree)).check()
+        result, text = linter(LintContext(section, ctx, tree)).check()
         if not result.value:
             success = False
             output = '{}: {}: FAIL'.format(job_name, linter.description)

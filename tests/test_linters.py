@@ -52,7 +52,7 @@ class ShellTest:
 
     def test_non_project_skipped(self):
         tree = _elementtree_from_str('<not_project/>')
-        linter = CheckForEmptyShell(LintContext({}, tree))
+        linter = CheckForEmptyShell(LintContext({}, None, tree))
         result, text = linter.check()
         assert result is LintResult.SKIP
         assert text is None
@@ -77,13 +77,13 @@ class TestCheckShebang(ShellTest):
                 shell_script=shell_string))
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(
-            LintContext(get_config()['job_linter:check_shebang'], tree))
+            LintContext(get_config()['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
     def test_project_with_no_shell_part_skipped(self):
         tree = _elementtree_from_str('<project/>')
-        linter = CheckShebang(LintContext({}, tree))
+        linter = CheckShebang(LintContext({}, None, tree))
         result, _ = linter.actual_check()
         assert result is LintResult.SKIP
 
@@ -99,7 +99,7 @@ class TestCheckShebang(ShellTest):
         tree = _elementtree_from_str(self._xml_template.format(
             builders=builders))
         linter = CheckShebang(
-            LintContext(get_config()['job_linter:check_shebang'], tree))
+            LintContext(get_config()['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -112,7 +112,7 @@ class TestCheckShebang(ShellTest):
         config.read_dict({
             'job_linter:check_shebang': {'allow_default_shebang': 'false'}})
         linter = CheckShebang(
-            LintContext(config['job_linter:check_shebang'], tree))
+            LintContext(config['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result == LintResult.FAIL
 
@@ -134,7 +134,7 @@ class TestCheckShebang(ShellTest):
             'job_linter:check_shebang': {'required_shell_options': required}})
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(
-            LintContext(config['job_linter:check_shebang'], tree))
+            LintContext(config['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -148,7 +148,7 @@ class TestCheckForEmptyShell(ShellTest):
             self._xml_template.format(
                 builders=self._shell_builder_template.format(
                     shell_script=script)))
-        linter = CheckForEmptyShell(LintContext({}, tree))
+        linter = CheckForEmptyShell(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -166,7 +166,7 @@ class TestEnsureTimestamps:
             </project>''')))
     def test_linter(self, expected, xml_string):
         tree = _elementtree_from_str(xml_string)
-        linter = EnsureTimestamps(LintContext({}, tree))
+        linter = EnsureTimestamps(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -185,12 +185,12 @@ class TestLinter:
         tree = _elementtree_from_str('<test_tag/>')
         mock_result = mocker.sentinel.result, mocker.sentinel.text
         linter = self.LintTestSubclass(
-            LintContext({'_mock_result': mock_result}, tree))
+            LintContext({'_mock_result': mock_result}, None, tree))
         assert mock_result == linter.check()
 
     def test_wrong_root_tag_is_skipped_without_check(self, mocker):
         tree = _elementtree_from_str('<not_right/>')
-        linter = self.LintTestSubclass(LintContext({}, tree))
+        linter = self.LintTestSubclass(LintContext({}, None, tree))
         linter.actual_check = mocker.Mock()
         result, text = linter.check()
         assert result == LintResult.SKIP

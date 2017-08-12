@@ -27,7 +27,9 @@ class LintContext:
 
     def __init__(self,
                  config: SectionProxy,
-                 tree: ElementTree.ElementTree) -> None:
+                 run_ctx: 'RunContext',
+                 tree: ElementTree.ElementTree,
+                 ) -> None:
         """
         Create a LintContext.
 
