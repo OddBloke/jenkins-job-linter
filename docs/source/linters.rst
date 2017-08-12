@@ -22,6 +22,8 @@ Ensure that all shell builders in a job have some content.
 Configuration Options
 ~~~~~~~~~~~~~~~~~~~~~
 
+No configuration options.
+
 ``check_shebang``
 -----------------
 
