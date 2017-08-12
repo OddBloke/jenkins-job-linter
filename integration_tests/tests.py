@@ -89,11 +89,21 @@ IntegrationTestcase = namedtuple(
     ['test_name', 'jobs_yaml', 'expected_output', 'expect_success', 'config'])
 
 
+def _get_case_item(key, case_dict, defaults, required=True):
+    value = case_dict.get(key, None)
+    if value is not None:
+        return value
+    if required:
+        return defaults[key]
+    return defaults.get(key, None)
+
+
 def _parse_testcases(filenames):
     names = set()
     for filename in filenames:
         with open(filename) as f:
             data = yaml.safe_load(f)
+        defaults = data.get('defaults', {})
         for case_dict in data['cases']:
             name = case_dict['name']
             if name in names:
@@ -101,11 +111,13 @@ def _parse_testcases(filenames):
             if 'description' not in case_dict:
                 raise Exception('Test {} has no description'.format(name))
             names.add(name)
-            yield IntegrationTestcase(name,
-                                      case_dict['jobs.yaml'],
-                                      case_dict['expected_output'],
-                                      case_dict['expect_success'],
-                                      case_dict.get('config', None))
+            yield IntegrationTestcase(
+                name,
+                _get_case_item('jobs.yaml', case_dict, defaults),
+                _get_case_item('expected_output', case_dict, defaults),
+                _get_case_item('expect_success', case_dict, defaults),
+                _get_case_item('config', case_dict, defaults, required=False),
+            )
 
 
 def pytest_generate_tests(metafunc):
