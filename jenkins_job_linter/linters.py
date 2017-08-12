@@ -90,6 +90,25 @@ class EnsureTimestamps(JobLinter):
         return result, None
 
 
+class CheckJobReferences(JobLinter):
+    """Ensure that jobs referenced for triggering exist."""
+
+    description = 'checking job references'
+    _xpath = (
+        './builders/hudson.plugins.parameterizedtrigger.TriggerBuilder/configs'
+        '/*/projects')
+
+    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+        """Check referenced jobs against RunContext.object_names."""
+        project_nodes = self._ctx.tree.findall(self._xpath)
+        for node in project_nodes:
+            project = node.text
+            if project not in self._ctx.run_ctx.object_names:
+                return (LintResult.FAIL,
+                        'Reference to missing object {}'.format(project))
+        return LintResult.PASS, None
+
+
 class ShellBuilderLinter(JobLinter):
     """A linter that operates on the shell builders of jobs."""
 

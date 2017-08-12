@@ -24,6 +24,18 @@ Configuration Options
 
 No configuration options.
 
+``check_job_references``
+------------------------
+
+Ensure that all job references have a target within the generated
+Jenkins configuration.  Currently, this checks the ``trigger-builds``
+builder.
+
+Configuration Options
+~~~~~~~~~~~~~~~~~~~~~
+
+No configuration options.
+
 ``check_shebang``
 -----------------
 

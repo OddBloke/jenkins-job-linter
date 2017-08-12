@@ -19,12 +19,13 @@ import pytest
 
 from jenkins_job_linter.linters import (
     CheckForEmptyShell,
+    CheckJobReferences,
     CheckShebang,
     EnsureTimestamps,
-    LintContext,
     Linter,
     LintResult,
 )
+from jenkins_job_linter.models import LintContext, RunContext
 
 from .mocks import get_config
 
@@ -167,6 +168,43 @@ class TestEnsureTimestamps:
     def test_linter(self, expected, xml_string):
         tree = _elementtree_from_str(xml_string)
         linter = EnsureTimestamps(LintContext({}, None, tree))
+        result, _ = linter.check()
+        assert result is expected
+
+
+class TestCheckJobReferences:
+
+    _trigger_builder_template = """\
+<project>
+    <builders>
+        <hudson.plugins.parameterizedtrigger.TriggerBuilder>
+            <configs>
+                {}
+            </configs>
+        </hudson.plugins.parameterizedtrigger.TriggerBuilder>
+    </builders>
+</project>"""
+
+    _config_template = """\
+<hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
+    <projects>{}</projects>
+</hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
+
+    @pytest.mark.parametrize('expected,configured_projects,object_names', (
+        (LintResult.PASS, ['existent-project'], ['existent-project']),
+        (LintResult.PASS, ['one', 'two'], ['one', 'two']),
+        (LintResult.PASS, ['one', 'two'], ['zero', 'one', 'two', 'three']),
+        (LintResult.FAIL, ['non-existent-project'], ['existent-project']),
+        (LintResult.FAIL, ['exists', 'doesnt'], ['exists']),
+        (LintResult.FAIL, ['doesnt', 'exists'], ['exists']),
+    ))
+    def test_linter(self, expected, configured_projects, object_names):
+        configs = ''.join(self._config_template.format(project)
+                          for project in configured_projects)
+        tree = _elementtree_from_str(
+            self._trigger_builder_template.format(configs))
+        linter = CheckJobReferences(
+            LintContext({}, RunContext(object_names), tree))
         result, _ = linter.check()
         assert result is expected
 
