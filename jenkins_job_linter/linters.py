@@ -15,7 +15,7 @@
 import re
 from configparser import SectionProxy
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple  # noqa
+from typing import Any, Dict, Optional, Set, Tuple  # noqa
 from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
@@ -173,6 +173,27 @@ class CheckShebang(ShellBuilderLinter):
 
     description = 'checking shebang of shell builders'
 
+    def _check_shell_shebang(self, required_shell_options_set: Set[str],
+                             first_line: str) -> bool:
+        """Given a shell shebang and required options, check it."""
+        line_parts = first_line.split(' ')
+        if len(line_parts) < 2:
+            return False
+        shell_options_match = re.match(r'-([a-z]+)', line_parts[1])
+        if shell_options_match is None:
+            return False
+        if not required_shell_options_set.issubset(
+                set(shell_options_match.group(1))):
+            return False
+        return True
+
+    def _handle_jenkins_default(self) -> Tuple[LintResult, Optional[str]]:
+        """Return the appropriate result for a Jenkins-default shebang."""
+        if self._ctx.config.getboolean('allow_default_shebang'):
+            return LintResult.SKIP, None
+        else:
+            return LintResult.FAIL, "Shebang is Jenkins' default"
+
     def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
                                                                 Optional[str]]:
         """Check a shell script for an appropriate shebang."""
@@ -181,10 +202,7 @@ class CheckShebang(ShellBuilderLinter):
         first_line = shell_script.splitlines()[0]
         if not first_line.startswith('#!'):
             # This will use Jenkins' default
-            if self._ctx.config.getboolean('allow_default_shebang'):
-                return LintResult.SKIP, None
-            else:
-                return LintResult.FAIL, "Shebang is Jenkins' default"
+            return self._handle_jenkins_default()
         if re.match(r'#!/bin/[a-z]*sh', first_line) is None:
             # This has a non-shell shebang
             return LintResult.SKIP, None
@@ -192,16 +210,9 @@ class CheckShebang(ShellBuilderLinter):
             self._ctx.config['required_shell_options'])
         if not required_shell_options_set:
             return LintResult.PASS, None
-        line_parts = first_line.split(' ')
-        fail_result = LintResult.FAIL, 'Shebang is {}'.format(first_line)
-        if len(line_parts) < 2:
-            return fail_result
-        shell_options_match = re.match(r'-([a-z]+)', line_parts[1])
-        if shell_options_match is None:
-            return fail_result
-        if not required_shell_options_set.issubset(
-                set(shell_options_match.group(1))):
-            return fail_result
+        if not self._check_shell_shebang(required_shell_options_set,
+                                         first_line):
+            return LintResult.FAIL, 'Shebang is {}'.format(first_line)
         return LintResult.PASS, None
 
 
