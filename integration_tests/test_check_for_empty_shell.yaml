@@ -1,3 +1,9 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run =
+            check_for_empty_shell
+
 cases:
     - name: test_empty_shell_builder
       description: |
@@ -7,8 +13,6 @@ cases:
               name: test-job
               builders:
                 - shell: ""
-              wrappers:
-                - timestamps
       expected_output: |
         test-job: checking shell builder shell scripts are not empty: FAIL
       expect_success: False
@@ -23,8 +27,6 @@ cases:
                 - shell: "#!/usr/bin/env python"
                 - shell: "just some code"
                 - shell: ""
-              wrappers:
-                - timestamps
       expected_output: |
         test-job: checking shell builder shell scripts are not empty: FAIL
       expect_success: False

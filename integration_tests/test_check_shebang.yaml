@@ -1,3 +1,8 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run =
+            check_shebang
 cases:
     - name: test_invalid_shebang
       description: |
@@ -7,8 +12,6 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh -ex"
-              wrappers:
-                - timestamps
       expected_output: |
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh -ex
       expect_success: False
@@ -21,8 +24,6 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh"
-              wrappers:
-                - timestamps
       expected_output: |
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh
       expect_success: False
@@ -35,8 +36,6 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh not opts"
-              wrappers:
-                - timestamps
       expected_output: |
         test-job: checking shebang of shell builders: FAIL: Shebang is #!/bin/sh not opts
       expect_success: False
@@ -49,8 +48,6 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/usr/bin/env python"
-              wrappers:
-                - timestamps
       expected_output: ""
       expect_success: True
 
@@ -62,8 +59,6 @@ cases:
               name: test-job
               builders:
                 - shell: "just some code"
-              wrappers:
-                - timestamps
       expected_output: ""
       expect_success: True
 
@@ -75,9 +70,10 @@ cases:
               name: test-job
               builders:
                 - shell: "just some code"
-              wrappers:
-                - timestamps
       config: |
+          [job_linter]
+          only_run =
+            check_shebang
           [job_linter:check_shebang]
           allow_default_shebang = false
       expected_output: |
@@ -92,9 +88,10 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh"
-              wrappers:
-                - timestamps
       config: |
+          [job_linter]
+          only_run =
+            check_shebang
           [job_linter:check_shebang]
           required_shell_options =
       expected_output: ""
@@ -108,9 +105,10 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh -opt"
-              wrappers:
-                - timestamps
       config: |
+          [job_linter]
+          only_run =
+            check_shebang
           [job_linter:check_shebang]
           required_shell_options = opts
       expected_output: |
@@ -125,9 +123,10 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh -e"
-              wrappers:
-                - timestamps
       config: |
+          [job_linter]
+          only_run =
+            check_shebang
           [job_linter:check_shebang]
           required_shell_options = e
       expected_output: ""
@@ -141,9 +140,10 @@ cases:
               name: test-job
               builders:
                 - shell: "#!/bin/sh -eux"
-              wrappers:
-                - timestamps
       config: |
+          [job_linter]
+          only_run =
+            check_shebang
           [job_linter:check_shebang]
           required_shell_options = e
       expected_output: ""
