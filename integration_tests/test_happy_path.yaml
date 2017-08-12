@@ -1,0 +1,13 @@
+cases:
+    - name: test_all_linters_happy_path
+      description: |
+          Test a job that should pass all linting checks
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                - shell: "#!/bin/sh -eux"
+              wrappers:
+                - timestamps
+      expected_output: ""
+      expect_success: True

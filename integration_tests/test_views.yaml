@@ -1,0 +1,10 @@
+cases:
+    - name: test_no_errors_against_views
+      description: |
+          Test that views are ignored by linters
+      jobs.yaml: |
+          - view:
+              name: test-view
+              type: list-view
+      expected_output: ""
+      expect_success: True

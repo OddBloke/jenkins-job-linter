@@ -1,0 +1,13 @@
+cases:
+    - name: test_disable_linters_config
+      description: |
+          Test that disable_linters will skip checks (specifically timestamps in this case)
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: ""
+      config: |
+          [job_linter]
+          disable_linters=
+            ensure_timestamps
+      expect_success: True

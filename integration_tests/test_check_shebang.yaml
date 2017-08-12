@@ -1,29 +1,4 @@
 cases:
-    - name: test_all_linters_happy_path
-      description: |
-          Test a job that should pass all linting checks
-      jobs.yaml: |
-          - job:
-              name: test-job
-              builders:
-                - shell: "#!/bin/sh -eux"
-              wrappers:
-                - timestamps
-      expected_output: ""
-      expect_success: True
-
-    - name: test_missing_timestamps
-      description: |
-          Test that missing timestamps cause a linting failure
-      jobs.yaml: |
-          - job:
-              name: test-job
-              builders:
-                - shell: "#!/bin/sh -eux"
-      expected_output: |
-        test-job: checking for timestamps: FAIL
-      expect_success: False
-
     - name: test_invalid_shebang
       description: |
           Test that an invalid shebang causes a linting failure
@@ -90,49 +65,6 @@ cases:
               wrappers:
                 - timestamps
       expected_output: ""
-      expect_success: True
-
-    - name: test_empty_shell_builder
-      description: |
-          Test that empty shell builders cause linting failures
-      jobs.yaml: |
-          - job:
-              name: test-job
-              builders:
-                - shell: ""
-              wrappers:
-                - timestamps
-      expected_output: |
-        test-job: checking shell builder shell scripts are not empty: FAIL
-      expect_success: False
-
-    - name: test_multiple_shell_builders
-      description: |
-          Test that more than just the first shell builder is linted
-      jobs.yaml: |
-          - job:
-              name: test-job
-              builders:
-                - shell: "#!/usr/bin/env python"
-                - shell: "just some code"
-                - shell: ""
-              wrappers:
-                - timestamps
-      expected_output: |
-        test-job: checking shell builder shell scripts are not empty: FAIL
-      expect_success: False
-
-    - name: test_disable_linters_config
-      description: |
-          Test that disable_linters will skip checks (specifically timestamps in this case)
-      jobs.yaml: |
-          - job:
-              name: test-job
-      expected_output: ""
-      config: |
-          [job_linter]
-          disable_linters=
-            ensure_timestamps
       expect_success: True
 
     - name: test_check_shebang_allow_default_configuration
@@ -214,15 +146,5 @@ cases:
       config: |
           [job_linter:check_shebang]
           required_shell_options = e
-      expected_output: ""
-      expect_success: True
-
-    - name: test_no_errors_against_views
-      description: |
-          Test that views are ignored by linters
-      jobs.yaml: |
-          - view:
-              name: test-view
-              type: list-view
       expected_output: ""
       expect_success: True
