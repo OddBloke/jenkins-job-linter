@@ -44,7 +44,7 @@ def _get_default_linter_configs() -> Dict[str, Dict[str, Any]]:
             for name, linter in LINTERS.items()}
 
 
-def _filter_config(config: ConfigParser) -> ConfigParser:
+def _filter_config(config: ConfigParser) -> GetListConfigParser:
     """
     Return a ConfigParser with only the job_linter section of the one passed.
 
