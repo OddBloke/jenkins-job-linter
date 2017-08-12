@@ -13,6 +13,8 @@
 # limitations under the License.
 import configparser
 
+import pytest
+
 from jenkins_job_linter.config import (
     _filter_config,
     _get_default_linter_configs,
@@ -53,3 +55,20 @@ class TestFilterConfig:
         config.read_dict({k: {} for k in wont_filter + will_filter})
         filtered_config = _filter_config(config)
         assert set(wont_filter) == set(filtered_config.sections())
+
+    @pytest.mark.parametrize('expected,option_content', (
+        ([], ''),
+        (['eggs'], 'eggs'),
+        (['eggs', 'spam'], 'eggs,spam'),
+        (['eggs', 'spam'], 'eggs, spam'),
+        (['eggs', 'spam'], '   eggs, spam   '),
+        (['eggs', 'spam'], '   eggs,\nspam   '),
+    ))
+    def test_returned_configparser_getlist(
+            self, expected, mocker, option_content):
+        mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.LINTERS', {})
+        config = configparser.ConfigParser()
+        config.read_dict({'job_linter': {'opt': option_content}})
+        filtered_config = _filter_config(config)
+        assert expected == filtered_config.getlist('job_linter', 'opt')

@@ -21,18 +21,18 @@ from xml.etree import ElementTree
 
 import click
 
-from jenkins_job_linter.config import _filter_config
+from jenkins_job_linter.config import _filter_config, GetListConfigParser
 from jenkins_job_linter.linters import LINTERS, LintContext
 
 
 def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
-                 config: ConfigParser) -> bool:
+                 config: GetListConfigParser) -> bool:
     """Run all the linters against an XML tree."""
     success = True
     for linter_name, linter in LINTERS.items():
-        if linter_name in config['job_linter']['disable_linters']:
+        if linter_name in config.getlist('job_linter', 'disable_linters'):
             continue
-        only_run = config['job_linter']['only_run']
+        only_run = config.getlist('job_linter', 'only_run')
         if only_run and linter_name not in only_run:
             continue
         # This cast is needed until
