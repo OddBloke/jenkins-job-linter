@@ -68,10 +68,11 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     """Load jobs from a directory and run linters against each one."""
     config = _filter_config(config)
     success = True
-    for job_file in os.listdir(compiled_job_directory):
+    filenames = os.listdir(compiled_job_directory)
+    for job_file in filenames:
         job_path = os.path.join(compiled_job_directory, job_file)
-        result = lint_job_xml(
-            RunContext([]), job_file, ElementTree.parse(job_path), config)
+        result = lint_job_xml(RunContext(filenames), job_file,
+                              ElementTree.parse(job_path), config)
         success = success and result
     return success
 

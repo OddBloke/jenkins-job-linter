@@ -165,6 +165,15 @@ class TestLintJobsFromDirectory:
         assert expected_paths == set(
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
 
+    def test_listdir_return_used_as_object_list(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dir', mocker.MagicMock())
+        passed_ctx = lint_job_xml_mock.call_args[0][0]
+        assert listdir_mock.return_value == passed_ctx.object_names
+
     def test_filtered_config_passed_to_lint_job_xml(self, mocker):
         mocker.patch('jenkins_job_linter.config.LINTERS', {})
         mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
