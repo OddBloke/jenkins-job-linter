@@ -13,36 +13,12 @@
 # limitations under the License.
 """A collection of linters for Jenkins job XML."""
 import re
-from configparser import SectionProxy
 from enum import Enum
 from typing import Any, Dict, Optional, Set, Tuple  # noqa
-from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
 
-
-class LintContext:
-    """
-    The context in which a linter should run.
-
-    This contains all of the information about the object under test, and the
-    environment in which the linter is running.
-    """
-
-    def __init__(self,
-                 config: SectionProxy,
-                 tree: ElementTree.ElementTree) -> None:
-        """
-        Create a LintContext.
-
-        :param config:
-            The configparser.SectionProxy of the parsed configuration for this
-            particular linter.
-        :param tree:
-            A Jenkins XML file parsed in to an ElementTree.
-        """
-        self.config = config
-        self.tree = tree
+from jenkins_job_linter.models import LintContext
 
 
 class LintResult(Enum):

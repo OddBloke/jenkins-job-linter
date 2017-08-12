@@ -16,27 +16,14 @@
 import os
 import sys
 from configparser import ConfigParser, SectionProxy
-from typing import Iterable, Optional, cast
+from typing import Optional, cast
 from xml.etree import ElementTree
 
 import click
 
 from jenkins_job_linter.config import _filter_config, GetListConfigParser
-from jenkins_job_linter.linters import LINTERS, LintContext
-
-
-class RunContext:
-    """Run-level data to be passed around and to linters."""
-
-    def __init__(self, object_names: Iterable[str]) -> None:
-        """
-        Create a RunContext.
-
-        :param object_names:
-            An iterable containing the names of Jenkins objects that this run
-            is operating against.
-        """
-        self.object_names = object_names
+from jenkins_job_linter.linters import LINTERS
+from jenkins_job_linter.models import LintContext, RunContext
 
 
 def lint_job_xml(ctx: RunContext, job_name: str, tree: ElementTree.ElementTree,
