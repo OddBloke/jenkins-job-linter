@@ -82,6 +82,21 @@ class TestLintJobXML:
         assert 0 == linters['disable_me'].call_count
         assert 1 == linters['not_me'].call_count
 
+    def test_only_run_config(self, mocker):
+        linters = {
+            'only_me': create_mock_for_class(Linter),
+            'not_me': create_mock_for_class(Linter),
+            'or_me': create_mock_for_class(Linter),
+        }
+        mocker.patch('jenkins_job_linter.LINTERS', linters)
+        mocker.patch('jenkins_job_linter.config.LINTERS', linters)
+        config = get_config()
+        config['job_linter']['only_run'] = 'only_me'
+        lint_job_xml('job_name', mocker.Mock(), config)
+        assert 0 == linters['not_me'].call_count
+        assert 0 == linters['or_me'].call_count
+        assert 1 == linters['only_me'].call_count
+
 
 class TestLintJobsFromDirectory:
 

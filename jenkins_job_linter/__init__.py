@@ -32,6 +32,9 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
     for linter_name, linter in LINTERS.items():
         if linter_name in config['job_linter']['disable_linters']:
             continue
+        only_run = config['job_linter']['only_run']
+        if only_run and linter_name not in only_run:
+            continue
         # This cast is needed until
         # https://github.com/python/typeshed/pull/1527 is fixed
         section = cast(SectionProxy,

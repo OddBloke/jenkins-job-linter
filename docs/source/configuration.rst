@@ -21,3 +21,7 @@ Global Configuration Options
 ``disable_linters``
     a comma-separated list of linter names that should be disabled for
     this run of jenkins-job-linter
+
+``only_run``
+    a comma-separated list of linter names that should be the only
+    linters enabled for this run of jenkins-job-linter

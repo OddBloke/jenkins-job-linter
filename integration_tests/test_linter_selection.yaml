@@ -1,0 +1,46 @@
+cases:
+    - name: test_disable_linters_config
+      description: |
+          Test that disable_linters will skip checks (specifically timestamps in this case)
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: ""
+      config: |
+          [job_linter]
+          disable_linters=
+            ensure_timestamps
+      expect_success: True
+
+    - name: test_disable_multiple_linters_config
+      description: |
+          Test that disable_linters will skip checks (specifically timestamps in this case)
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - shell: ""
+      expected_output: ""
+      config: |
+          [job_linter]
+          disable_linters=
+            ensure_timestamps,check_for_empty_shell
+      expect_success: True
+
+    - name: test_only_run
+      description: |
+          Test that only_run causes only a single linter to be run (in this
+          case, we would otherwise see shell failures)
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - shell: ""
+                  - shell: "#!/bin/sh -nope"
+      config: |
+          [job_linter]
+          only_run=
+            ensure_timestamps
+      expected_output: |
+        test-job: checking for timestamps: FAIL
+      expect_success: False
