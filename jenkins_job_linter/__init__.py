@@ -16,7 +16,7 @@
 import os
 import sys
 from configparser import ConfigParser, SectionProxy
-from typing import Optional, cast
+from typing import Iterable, Optional, cast
 from xml.etree import ElementTree
 
 import click
@@ -25,7 +25,21 @@ from jenkins_job_linter.config import _filter_config, GetListConfigParser
 from jenkins_job_linter.linters import LINTERS, LintContext
 
 
-def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
+class RunContext:
+    """Run-level data to be passed around and to linters."""
+
+    def __init__(self, object_names: Iterable[str]) -> None:
+        """
+        Create a RunContext.
+
+        :param object_names:
+            An iterable containing the names of Jenkins objects that this run
+            is operating against.
+        """
+        self.object_names = object_names
+
+
+def lint_job_xml(ctx: RunContext, job_name: str, tree: ElementTree.ElementTree,
                  config: GetListConfigParser) -> bool:
     """Run all the linters against an XML tree."""
     success = True
@@ -56,7 +70,8 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     success = True
     for job_file in os.listdir(compiled_job_directory):
         job_path = os.path.join(compiled_job_directory, job_file)
-        result = lint_job_xml(job_file, ElementTree.parse(job_path), config)
+        result = lint_job_xml(
+            RunContext([]), job_file, ElementTree.parse(job_path), config)
         success = success and result
     return success
 
