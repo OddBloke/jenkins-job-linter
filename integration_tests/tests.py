@@ -98,6 +98,18 @@ def _get_case_item(key, case_dict, defaults, required=True):
     return defaults.get(key, None)
 
 
+def _parse_case(case_dict, defaults):
+    if 'description' not in case_dict:
+        raise Exception('Test {} has no description'.format(case_dict['name']))
+    return IntegrationTestcase(
+        case_dict['name'],
+        _get_case_item('jobs.yaml', case_dict, defaults),
+        _get_case_item('expected_output', case_dict, defaults),
+        _get_case_item('expect_success', case_dict, defaults),
+        _get_case_item('config', case_dict, defaults, required=False),
+    )
+
+
 def _parse_testcases(filenames):
     names = set()
     for filename in filenames:
@@ -105,19 +117,12 @@ def _parse_testcases(filenames):
             data = yaml.safe_load(f)
         defaults = data.get('defaults', {})
         for case_dict in data['cases']:
-            name = case_dict['name']
-            if name in names:
-                raise Exception('Duplicate test name: {}'.format(name))
-            if 'description' not in case_dict:
-                raise Exception('Test {} has no description'.format(name))
-            names.add(name)
-            yield IntegrationTestcase(
-                name,
-                _get_case_item('jobs.yaml', case_dict, defaults),
-                _get_case_item('expected_output', case_dict, defaults),
-                _get_case_item('expect_success', case_dict, defaults),
-                _get_case_item('config', case_dict, defaults, required=False),
-            )
+            testcase = _parse_case(case_dict, defaults)
+            if testcase.test_name in names:
+                raise Exception(
+                    'Duplicate test name: {}'.format(testcase.test_name))
+            names.add(testcase.test_name)
+            yield testcase
 
 
 def pytest_generate_tests(metafunc):
