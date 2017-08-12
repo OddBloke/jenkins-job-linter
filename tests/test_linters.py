@@ -208,6 +208,18 @@ class TestCheckJobReferences:
         result, _ = linter.check()
         assert result is expected
 
+    def test_completely_empty_projects_node(self):
+        config = """\
+<hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
+    <projects/>
+</hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
+        tree = _elementtree_from_str(
+            self._trigger_builder_template.format(config))
+        linter = CheckJobReferences(
+            LintContext({}, RunContext(['object']), tree))
+        result, _ = linter.check()
+        assert result is LintResult.FAIL
+
 
 class TestLinter:
 

@@ -62,3 +62,16 @@ cases:
       expected_output: |
           test-job: checking job references: FAIL: Reference to missing object missing-job
       expect_success: False
+
+    - name: test_unconfigured_reference
+      description: |
+          Test that an unconfigured reference is a failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project:
+      expected_output: |
+          test-job: checking job references: FAIL: No reference configured
+      expect_success: False
