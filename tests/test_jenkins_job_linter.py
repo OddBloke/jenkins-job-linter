@@ -20,16 +20,14 @@ from click.testing import CliRunner
 from jenkins_job_linter import lint_job_xml, lint_jobs_from_directory, main
 from jenkins_job_linter.linters import Linter, LintResult
 
-from .mocks import create_mock_for_class, get_LINTERS_for_linters, get_config
+from .mocks import create_mock_for_class, get_config, mock_LINTERS
 
 
 class TestLintJobXML:
 
     def test_all_linters_called_with_tree(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
-        linters = get_LINTERS_for_linters(linter_mocks)
-        mocker.patch('jenkins_job_linter.LINTERS', linters)
-        mocker.patch('jenkins_job_linter.config.LINTERS', linters)
+        mock_LINTERS(mocker, linter_mocks)
         lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
         lint_job_xml('job_name', mocker.sentinel.tree, get_config())
         for linter_mock in linter_mocks:
@@ -40,11 +38,9 @@ class TestLintJobXML:
             assert mocker.call(mocker.ANY, mocker.sentinel.tree) == call_args
 
     def test_lintcontext_passed_filtered_config(self, mocker):
-        linters = get_LINTERS_for_linters([create_mock_for_class(Linter)])
-        mocker.patch('jenkins_job_linter.LINTERS', linters)
+        linters = mock_LINTERS(mocker, [create_mock_for_class(Linter)])
         config = get_config()
         section_name = 'job_linter:{}'.format(list(linters.keys())[0])
-        config.add_section(section_name)
         config[section_name]['k'] = 'v'
         lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
         lint_job_xml('job_name', mocker.sentinel.tree, config)
@@ -62,18 +58,14 @@ class TestLintJobXML:
         for result in results:
             mock = create_mock_for_class(Linter, check_result=result)
             linter_mocks.append(mock)
-        linters = get_LINTERS_for_linters(linter_mocks)
-        mocker.patch('jenkins_job_linter.LINTERS', linters)
-        mocker.patch('jenkins_job_linter.config.LINTERS', linters)
+        mock_LINTERS(mocker, linter_mocks)
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             get_config()) is expected
 
     def test_linters_can_return_text(self, mocker):
-        linters = get_LINTERS_for_linters([
+        mock_LINTERS(mocker, [
             create_mock_for_class(
                 Linter, check_result=LintResult.FAIL, check_msg='msg')])
-        mocker.patch('jenkins_job_linter.LINTERS', linters)
-        mocker.patch('jenkins_job_linter.config.LINTERS', linters)
         assert lint_job_xml('job_name', mocker.sentinel.tree,
                             get_config()) is False
 
