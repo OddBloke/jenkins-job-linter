@@ -13,36 +13,12 @@
 # limitations under the License.
 """A collection of linters for Jenkins job XML."""
 import re
-from configparser import SectionProxy
 from enum import Enum
 from typing import Any, Dict, Optional, Set, Tuple  # noqa
-from xml.etree import ElementTree
 
 from stevedore.extension import ExtensionManager
 
-
-class LintContext:
-    """
-    The context in which a linter should run.
-
-    This contains all of the information about the object under test, and the
-    environment in which the linter is running.
-    """
-
-    def __init__(self,
-                 config: SectionProxy,
-                 tree: ElementTree.ElementTree) -> None:
-        """
-        Create a LintContext.
-
-        :param config:
-            The configparser.SectionProxy of the parsed configuration for this
-            particular linter.
-        :param tree:
-            A Jenkins XML file parsed in to an ElementTree.
-        """
-        self.config = config
-        self.tree = tree
+from jenkins_job_linter.models import LintContext
 
 
 class LintResult(Enum):
@@ -112,6 +88,27 @@ class EnsureTimestamps(JobLinter):
         if self._ctx.tree.find(self._xpath) is not None:
             result = LintResult.PASS
         return result, None
+
+
+class CheckJobReferences(JobLinter):
+    """Ensure that jobs referenced for triggering exist."""
+
+    description = 'checking job references'
+    _xpath = (
+        './builders/hudson.plugins.parameterizedtrigger.TriggerBuilder/configs'
+        '/*/projects')
+
+    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+        """Check referenced jobs against RunContext.object_names."""
+        project_nodes = self._ctx.tree.findall(self._xpath)
+        for node in project_nodes:
+            project = node.text
+            if project is None:
+                return LintResult.FAIL, 'No reference configured'
+            if project not in self._ctx.run_ctx.object_names:
+                return (LintResult.FAIL,
+                        'Reference to missing object {}'.format(project))
+        return LintResult.PASS, None
 
 
 class ShellBuilderLinter(JobLinter):

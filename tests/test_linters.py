@@ -19,12 +19,13 @@ import pytest
 
 from jenkins_job_linter.linters import (
     CheckForEmptyShell,
+    CheckJobReferences,
     CheckShebang,
     EnsureTimestamps,
-    LintContext,
     Linter,
     LintResult,
 )
+from jenkins_job_linter.models import LintContext, RunContext
 
 from .mocks import get_config
 
@@ -52,7 +53,7 @@ class ShellTest:
 
     def test_non_project_skipped(self):
         tree = _elementtree_from_str('<not_project/>')
-        linter = CheckForEmptyShell(LintContext({}, tree))
+        linter = CheckForEmptyShell(LintContext({}, None, tree))
         result, text = linter.check()
         assert result is LintResult.SKIP
         assert text is None
@@ -77,13 +78,13 @@ class TestCheckShebang(ShellTest):
                 shell_script=shell_string))
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(
-            LintContext(get_config()['job_linter:check_shebang'], tree))
+            LintContext(get_config()['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
     def test_project_with_no_shell_part_skipped(self):
         tree = _elementtree_from_str('<project/>')
-        linter = CheckShebang(LintContext({}, tree))
+        linter = CheckShebang(LintContext({}, None, tree))
         result, _ = linter.actual_check()
         assert result is LintResult.SKIP
 
@@ -99,7 +100,7 @@ class TestCheckShebang(ShellTest):
         tree = _elementtree_from_str(self._xml_template.format(
             builders=builders))
         linter = CheckShebang(
-            LintContext(get_config()['job_linter:check_shebang'], tree))
+            LintContext(get_config()['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -112,7 +113,7 @@ class TestCheckShebang(ShellTest):
         config.read_dict({
             'job_linter:check_shebang': {'allow_default_shebang': 'false'}})
         linter = CheckShebang(
-            LintContext(config['job_linter:check_shebang'], tree))
+            LintContext(config['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result == LintResult.FAIL
 
@@ -134,7 +135,7 @@ class TestCheckShebang(ShellTest):
             'job_linter:check_shebang': {'required_shell_options': required}})
         tree = _elementtree_from_str(xml_string)
         linter = CheckShebang(
-            LintContext(config['job_linter:check_shebang'], tree))
+            LintContext(config['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -148,7 +149,7 @@ class TestCheckForEmptyShell(ShellTest):
             self._xml_template.format(
                 builders=self._shell_builder_template.format(
                     shell_script=script)))
-        linter = CheckForEmptyShell(LintContext({}, tree))
+        linter = CheckForEmptyShell(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
 
@@ -166,9 +167,58 @@ class TestEnsureTimestamps:
             </project>''')))
     def test_linter(self, expected, xml_string):
         tree = _elementtree_from_str(xml_string)
-        linter = EnsureTimestamps(LintContext({}, tree))
+        linter = EnsureTimestamps(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
+
+
+class TestCheckJobReferences:
+
+    _trigger_builder_template = """\
+<project>
+    <builders>
+        <hudson.plugins.parameterizedtrigger.TriggerBuilder>
+            <configs>
+                {}
+            </configs>
+        </hudson.plugins.parameterizedtrigger.TriggerBuilder>
+    </builders>
+</project>"""
+
+    _config_template = """\
+<hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
+    <projects>{}</projects>
+</hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
+
+    @pytest.mark.parametrize('expected,configured_projects,object_names', (
+        (LintResult.PASS, ['existent-project'], ['existent-project']),
+        (LintResult.PASS, ['one', 'two'], ['one', 'two']),
+        (LintResult.PASS, ['one', 'two'], ['zero', 'one', 'two', 'three']),
+        (LintResult.FAIL, ['non-existent-project'], ['existent-project']),
+        (LintResult.FAIL, ['exists', 'doesnt'], ['exists']),
+        (LintResult.FAIL, ['doesnt', 'exists'], ['exists']),
+    ))
+    def test_linter(self, expected, configured_projects, object_names):
+        configs = ''.join(self._config_template.format(project)
+                          for project in configured_projects)
+        tree = _elementtree_from_str(
+            self._trigger_builder_template.format(configs))
+        linter = CheckJobReferences(
+            LintContext({}, RunContext(object_names), tree))
+        result, _ = linter.check()
+        assert result is expected
+
+    def test_completely_empty_projects_node(self):
+        config = """\
+<hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
+    <projects/>
+</hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
+        tree = _elementtree_from_str(
+            self._trigger_builder_template.format(config))
+        linter = CheckJobReferences(
+            LintContext({}, RunContext(['object']), tree))
+        result, _ = linter.check()
+        assert result is LintResult.FAIL
 
 
 class TestLinter:
@@ -185,12 +235,12 @@ class TestLinter:
         tree = _elementtree_from_str('<test_tag/>')
         mock_result = mocker.sentinel.result, mocker.sentinel.text
         linter = self.LintTestSubclass(
-            LintContext({'_mock_result': mock_result}, tree))
+            LintContext({'_mock_result': mock_result}, None, tree))
         assert mock_result == linter.check()
 
     def test_wrong_root_tag_is_skipped_without_check(self, mocker):
         tree = _elementtree_from_str('<not_right/>')
-        linter = self.LintTestSubclass(LintContext({}, tree))
+        linter = self.LintTestSubclass(LintContext({}, None, tree))
         linter.actual_check = mocker.Mock()
         result, text = linter.check()
         assert result == LintResult.SKIP

@@ -1,0 +1,77 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run = check_job_references
+cases:
+    - name: test_check_job_references_passes
+      description: |
+          Test that valid job references don't cause failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+          - job:
+              name: other-test-job
+              builders:
+                  - trigger-builds:
+                      - project: test-job
+      expected_output: ""
+      expect_success: True
+
+    - name: test_missing_trigger_builds_builder_target_errors
+      description: |
+          Test that a missing trigger-builds builder target errors out
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project: missing-job
+      expected_output: |
+          test-job: checking job references: FAIL: Reference to missing object missing-job
+      expect_success: False
+
+    - name: test_multiple_projects_in_one_builder
+      description: |
+          Test that multiple projects configured in one builder are correctly checked
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project: existent-job
+                      - project: missing-job
+          - job:
+              name: existent-job
+      expected_output: |
+          test-job: checking job references: FAIL: Reference to missing object missing-job
+      expect_success: False
+
+    - name: test_multiple_builders_in_one_job
+      description: |
+          Test that multiple builders in one job are correctly checked
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project: existent-job
+                  - trigger-builds:
+                      - project: missing-job
+          - job:
+              name: existent-job
+      expected_output: |
+          test-job: checking job references: FAIL: Reference to missing object missing-job
+      expect_success: False
+
+    - name: test_unconfigured_reference
+      description: |
+          Test that an unconfigured reference is a failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project:
+      expected_output: |
+          test-job: checking job references: FAIL: No reference configured
+      expect_success: False

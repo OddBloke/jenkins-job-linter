@@ -25,17 +25,19 @@ from .mocks import create_mock_for_class, get_config, mock_LINTERS
 
 class TestLintJobXML:
 
-    def test_all_linters_called_with_tree(self, mocker):
+    def test_all_linters_called_with_tree_and_run_ctx(self, mocker):
         linter_mocks = [create_mock_for_class(Linter) for _ in range(3)]
         mock_LINTERS(mocker, linter_mocks)
         lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
-        lint_job_xml('job_name', mocker.sentinel.tree, get_config())
+        run_ctx = mocker.Mock()
+        lint_job_xml(run_ctx, 'job_name', mocker.sentinel.tree, get_config())
         for linter_mock in linter_mocks:
             assert linter_mock.call_count == 1
             assert linter_mock.call_args == mocker.call(
                 lint_context_mock.return_value)
         for call_args in lint_context_mock.call_args_list:
-            assert mocker.call(mocker.ANY, mocker.sentinel.tree) == call_args
+            assert mocker.call(
+                mocker.ANY, run_ctx, mocker.sentinel.tree) == call_args
 
     def test_lintcontext_passed_filtered_config(self, mocker):
         linters = mock_LINTERS(mocker, [create_mock_for_class(Linter)])
@@ -43,7 +45,7 @@ class TestLintJobXML:
         section_name = 'job_linter:{}'.format(list(linters.keys())[0])
         config[section_name]['k'] = 'v'
         lint_context_mock = mocker.patch('jenkins_job_linter.LintContext')
-        lint_job_xml('job_name', mocker.sentinel.tree, config)
+        lint_job_xml(mocker.Mock(), 'job_name', mocker.sentinel.tree, config)
         lint_context_config = lint_context_mock.call_args[0][0]
         assert 'v' == lint_context_config['k']
 
@@ -59,14 +61,14 @@ class TestLintJobXML:
             mock = create_mock_for_class(Linter, check_result=result)
             linter_mocks.append(mock)
         mock_LINTERS(mocker, linter_mocks)
-        assert lint_job_xml('job_name', mocker.sentinel.tree,
+        assert lint_job_xml(mocker.Mock(), 'job_name', mocker.sentinel.tree,
                             get_config()) is expected
 
     def test_linters_can_return_text(self, mocker):
         mock_LINTERS(mocker, [
             create_mock_for_class(
                 Linter, check_result=LintResult.FAIL, check_msg='msg')])
-        assert lint_job_xml('job_name', mocker.sentinel.tree,
+        assert lint_job_xml(mocker.Mock(), 'job_name', mocker.sentinel.tree,
                             get_config()) is False
 
     def test_disable_linters_config(self, mocker):
@@ -78,7 +80,7 @@ class TestLintJobXML:
         mocker.patch('jenkins_job_linter.config.LINTERS', linters)
         config = get_config()
         config['job_linter']['disable_linters'] = 'disable_me'
-        lint_job_xml('job_name', mocker.Mock(), config)
+        lint_job_xml(mocker.Mock(), 'job_name', mocker.Mock(), config)
         assert 0 == linters['disable_me'].call_count
         assert 1 == linters['not_me'].call_count
 
@@ -91,7 +93,7 @@ class TestLintJobXML:
         mocker.patch('jenkins_job_linter.config.LINTERS', linters)
         config = get_config()
         config['job_linter']['disable_linters'] = 'dont,another'
-        lint_job_xml('job_name', mocker.Mock(), config)
+        lint_job_xml(mocker.Mock(), 'job_name', mocker.Mock(), config)
         assert 1 == linters['do'].call_count
         assert 0 == linters['dont'].call_count
 
@@ -105,7 +107,7 @@ class TestLintJobXML:
         mocker.patch('jenkins_job_linter.config.LINTERS', linters)
         config = get_config()
         config['job_linter']['only_run'] = 'only_me'
-        lint_job_xml('job_name', mocker.Mock(), config)
+        lint_job_xml(mocker.Mock(), 'job_name', mocker.Mock(), config)
         assert 0 == linters['not_me'].call_count
         assert 0 == linters['or_me'].call_count
         assert 1 == linters['only_me'].call_count
@@ -119,7 +121,7 @@ class TestLintJobXML:
         mocker.patch('jenkins_job_linter.config.LINTERS', linters)
         config = get_config()
         config['job_linter']['only_run'] = 'dont'
-        lint_job_xml('job_name', mocker.Mock(), config)
+        lint_job_xml(mocker.Mock(), 'job_name', mocker.Mock(), config)
         assert 0 == linters['do'].call_count
         assert 1 == linters['dont'].call_count
 
@@ -131,16 +133,18 @@ class TestLintJobsFromDirectory:
         listdir_mock.return_value = []
         assert lint_jobs_from_directory('dir', mocker.MagicMock())
 
-    def test_job_name_and_tree_passed_to_lint_job_xml(self, mocker):
+    def test_context_job_name_and_tree_passed_to_lint_job_xml(self, mocker):
         listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
         listdir_mock.return_value = ['some', 'files']
         et_parse_mock = mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        runcontext_mock = mocker.patch('jenkins_job_linter.RunContext')
         lint_jobs_from_directory('dir', mocker.MagicMock())
         assert len(listdir_mock.return_value) == lint_job_xml_mock.call_count
         for filename in listdir_mock.return_value:
             assert (
-                mocker.call(filename, et_parse_mock.return_value, mocker.ANY)
+                mocker.call(runcontext_mock.return_value, filename,
+                            et_parse_mock.return_value, mocker.ANY)
                 in lint_job_xml_mock.call_args_list)
 
     def test_passed_directory_is_used_for_listing(self, mocker):
@@ -162,6 +166,15 @@ class TestLintJobsFromDirectory:
         assert expected_paths == set(
             [call_args[0][0] for call_args in et_parse_mock.call_args_list])
 
+    def test_listdir_return_used_as_object_list(self, mocker):
+        listdir_mock = mocker.patch('jenkins_job_linter.os.listdir')
+        listdir_mock.return_value = ['some', 'files']
+        mocker.patch('jenkins_job_linter.ElementTree.parse')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        lint_jobs_from_directory('dir', mocker.MagicMock())
+        passed_ctx = lint_job_xml_mock.call_args[0][0]
+        assert listdir_mock.return_value == passed_ctx.object_names
+
     def test_filtered_config_passed_to_lint_job_xml(self, mocker):
         mocker.patch('jenkins_job_linter.config.LINTERS', {})
         mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
@@ -175,7 +188,7 @@ class TestLintJobsFromDirectory:
         mocker.patch('jenkins_job_linter.ElementTree.parse')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
         lint_jobs_from_directory('dirname', config)
-        passed_config = lint_job_xml_mock.call_args[0][2]
+        passed_config = lint_job_xml_mock.call_args[0][3]
         assert ['job_linter'] == passed_config.sections()
 
     def test_config_passed_in_isnt_modified(self, mocker):
@@ -201,7 +214,7 @@ class TestLintJobsFromDirectory:
         mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS',
                      defaults)
         lint_jobs_from_directory('dirname', configparser.ConfigParser())
-        passed_config = lint_job_xml_mock.call_args[0][2]
+        passed_config = lint_job_xml_mock.call_args[0][3]
         assert passed_config['job_linter']['test'] == 'this'
 
 

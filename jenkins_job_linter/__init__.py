@@ -22,10 +22,11 @@ from xml.etree import ElementTree
 import click
 
 from jenkins_job_linter.config import _filter_config, GetListConfigParser
-from jenkins_job_linter.linters import LINTERS, LintContext
+from jenkins_job_linter.linters import LINTERS
+from jenkins_job_linter.models import LintContext, RunContext
 
 
-def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
+def lint_job_xml(ctx: RunContext, job_name: str, tree: ElementTree.ElementTree,
                  config: GetListConfigParser) -> bool:
     """Run all the linters against an XML tree."""
     success = True
@@ -39,7 +40,7 @@ def lint_job_xml(job_name: str, tree: ElementTree.ElementTree,
         # https://github.com/python/typeshed/pull/1527 is fixed
         section = cast(SectionProxy,
                        config['job_linter:{}'.format(linter_name)])
-        result, text = linter(LintContext(section, tree)).check()
+        result, text = linter(LintContext(section, ctx, tree)).check()
         if not result.value:
             success = False
             output = '{}: {}: FAIL'.format(job_name, linter.description)
@@ -54,9 +55,11 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     """Load jobs from a directory and run linters against each one."""
     config = _filter_config(config)
     success = True
-    for job_file in os.listdir(compiled_job_directory):
+    filenames = os.listdir(compiled_job_directory)
+    for job_file in filenames:
         job_path = os.path.join(compiled_job_directory, job_file)
-        result = lint_job_xml(job_file, ElementTree.parse(job_path), config)
+        result = lint_job_xml(RunContext(filenames), job_file,
+                              ElementTree.parse(job_path), config)
         success = success and result
     return success
 
