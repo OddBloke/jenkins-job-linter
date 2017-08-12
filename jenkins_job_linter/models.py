@@ -40,6 +40,7 @@ class LintContext:
             A Jenkins XML file parsed in to an ElementTree.
         """
         self.config = config
+        self.run_ctx = run_ctx
         self.tree = tree
 
 
