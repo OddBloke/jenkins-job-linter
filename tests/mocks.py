@@ -46,5 +46,8 @@ def get_config():
     return _filter_config(ConfigParser())
 
 
-def get_LINTERS_for_linters(linters):
-    return dict(zip(NAMES, linters))
+def mock_LINTERS(mocker, linter_mocks):
+    linters = dict(zip(NAMES, linter_mocks))
+    mocker.patch('jenkins_job_linter.LINTERS', linters)
+    mocker.patch('jenkins_job_linter.config.LINTERS', linters)
+    return linters

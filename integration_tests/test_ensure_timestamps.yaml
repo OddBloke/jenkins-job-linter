@@ -1,0 +1,16 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run =
+            ensure_timestamps
+
+cases:
+    - name: test_missing_timestamps
+      description: |
+          Test that missing timestamps cause a linting failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: |
+        test-job: checking for timestamps: FAIL
+      expect_success: False

@@ -19,6 +19,7 @@ from jenkins_job_linter.linters import LINTERS
 
 GLOBAL_CONFIG_DEFAULTS = {
     'disable_linters': [],
+    'only_run': None,
 }  # type: Dict[str, Any]
 
 
@@ -34,7 +35,7 @@ def _filter_config(config: ConfigParser) -> ConfigParser:
     This creates a new ConfigParser and removes sections from that, so the one
     passed in remains unmodified.
     """
-    filtered_config = ConfigParser()
+    filtered_config = ConfigParser(allow_no_value=True)
     filtered_config.read_dict({'job_linter': GLOBAL_CONFIG_DEFAULTS})
     filtered_config.read_dict(_get_default_linter_configs())
     filtered_config.read_dict(config)
