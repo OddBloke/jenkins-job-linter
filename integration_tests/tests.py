@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+import socket
 import subprocess
 from collections import namedtuple
 from glob import iglob
@@ -21,15 +22,23 @@ import pytest
 import yaml
 
 
+def get_available_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
+
+
 JJB_CONFIG = '''\
 [job_builder]
 ignore_cache=True
 
 [jenkins]
-url=http://0.0.0.0:8080/
+url=http://0.0.0.0:{}/
 user=XXX
 password=XXX
-'''
+'''.format(get_available_port())
 
 
 def _direct_runner(tmpdir, config):
