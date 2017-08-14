@@ -18,6 +18,7 @@ from xml.etree import ElementTree
 import pytest
 
 from jenkins_job_linter.linters import (
+    CheckEnvInject,
     CheckForEmptyShell,
     CheckJobReferences,
     CheckShebang,
@@ -219,6 +220,58 @@ class TestCheckJobReferences:
             LintContext({}, RunContext(['object']), tree))
         result, _ = linter.check()
         assert result is LintResult.FAIL
+
+
+class TestCheckEnvInject:
+
+    _template = '''\
+<project>
+  <properties>
+    <EnvInjectJobProperty>
+      <info>
+        <propertiesContent>{}</propertiesContent>
+      </info>
+    </EnvInjectJobProperty>
+  </properties>
+</project>'''
+
+    @pytest.mark.parametrize('expected,required_environment_settings', (
+        (LintResult.SKIP, ''),
+        (LintResult.FAIL, 'SOME=thing'),
+    ))
+    def test_no_properties_configured(
+            self, expected, required_environment_settings):
+        tree = _elementtree_from_str('<project/>')
+        config = get_config()
+        config['job_linter:check_env_inject'][
+            'required_environment_settings'] = required_environment_settings
+        linter = CheckEnvInject(
+            LintContext(config['job_linter:check_env_inject'], None, tree))
+        result, _ = linter.check()
+        assert result is expected
+
+    @pytest.mark.parametrize(
+        'expected,properties_content,required_environment_settings', (
+            (LintResult.FAIL, '', 'SOME=thing'),
+            (LintResult.PASS, 'SOME=thing', 'SOME=thing'),
+            (LintResult.PASS, '\n'.join(['FIRST=thing', 'SOME=thing',
+                                         'LAST=thing']),
+             'SOME=thing'),
+            (LintResult.PASS, '\n'.join(['FIRST=thing', 'SOME=thing',
+                                         'LAST=thing']),
+             'SOME=thing, LAST=thing'),
+            (LintResult.FAIL, 'FIRST=thingSOME=thing', 'SOME=thing'),
+        ))
+    def test_linter(
+            self, expected, properties_content, required_environment_settings):
+        tree = _elementtree_from_str(self._template.format(properties_content))
+        config = get_config()
+        config['job_linter:check_env_inject'][
+            'required_environment_settings'] = required_environment_settings
+        linter = CheckEnvInject(
+            LintContext(config['job_linter:check_env_inject'], None, tree))
+        result, _ = linter.check()
+        assert result is expected
 
 
 class TestLinter:

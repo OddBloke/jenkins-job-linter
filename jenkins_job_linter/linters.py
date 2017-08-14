@@ -14,7 +14,7 @@
 """A collection of linters for Jenkins job XML."""
 import re
 from enum import Enum
-from typing import Any, Dict, Optional, Set, Tuple  # noqa
+from typing import Any, Dict, List, Optional, Set, Tuple  # noqa
 
 from stevedore.extension import ExtensionManager
 
@@ -34,6 +34,9 @@ class LintResult(Enum):
     SKIP = True
 
 
+LintCheckResult = Tuple[LintResult, Optional[str]]
+
+
 class Linter:
     """A super-class capturing the common linting pattern."""
 
@@ -48,11 +51,11 @@ class Linter:
         """
         self._ctx = ctx
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Perform the actual linting check."""
         raise NotImplementedError  # pragma: nocover
 
-    def check(self) -> Tuple[LintResult, Optional[str]]:
+    def check(self) -> LintCheckResult:
         """Check the root tag of the object and call actual_check."""
         if self._ctx.tree.getroot().tag != self.root_tag:
             return LintResult.SKIP, None
@@ -82,12 +85,55 @@ class EnsureTimestamps(JobLinter):
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Check that the TimestamperBuildWrapper element is present."""
         result = LintResult.FAIL
         if self._ctx.tree.find(self._xpath) is not None:
             result = LintResult.PASS
         return result, None
+
+
+class CheckEnvInject(JobLinter):
+    """Ensure that required environment variables are injected."""
+
+    default_config = {
+        'required_environment_settings': '',
+    }
+
+    description = 'checking environment variable injection'
+    _xpath = './properties/EnvInjectJobProperty/info/propertiesContent'
+
+    def _check_properties(
+            self, properties_content: str,
+            required_environment_settings: List[str]) -> LintCheckResult:
+        """
+        Check that properties are correctly configured.
+
+        This assumes that sanity checking of the parameters has already
+        happened.
+        """
+        configured_properties = properties_content.split('\n')
+        for required_setting in required_environment_settings:
+            if required_setting not in configured_properties:
+                return LintResult.FAIL, 'Did not find {}'.format(
+                    required_setting)
+        return LintResult.PASS, None
+
+    def actual_check(self) -> LintCheckResult:
+        """Check that configured lines are present in propertiesContent."""
+        required_environment_settings = self._ctx.config.getlist(
+            'required_environment_settings')
+        if not required_environment_settings:
+            return LintResult.SKIP, None
+        properties_content = self._ctx.tree.find(self._xpath)
+        if properties_content is None:
+            return LintResult.FAIL, 'Injection unexpectedly unconfigured'
+        if properties_content.text is None:  # pragma: nocover
+            # Integration tests can't produce input that fails this way, so we
+            # can't get test coverage
+            return LintResult.FAIL, 'Injected properties empty'
+        return self._check_properties(properties_content.text,
+                                      required_environment_settings)
 
 
 class CheckJobReferences(JobLinter):
@@ -98,7 +144,7 @@ class CheckJobReferences(JobLinter):
         './builders/hudson.plugins.parameterizedtrigger.TriggerBuilder/configs'
         '/*/projects')
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Check referenced jobs against RunContext.object_names."""
         project_nodes = self._ctx.tree.findall(self._xpath)
         for node in project_nodes:
@@ -116,7 +162,7 @@ class ShellBuilderLinter(JobLinter):
 
     _xpath = './builders/hudson.tasks.Shell/command'
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """
         Iterate over the shell builders in a job calling self.shell_check.
 
@@ -134,8 +180,7 @@ class ShellBuilderLinter(JobLinter):
                 return result, text
         return LintResult.PASS, None
 
-    def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
-                                                                Optional[str]]:
+    def shell_check(self, shell_script: Optional[str]) -> LintCheckResult:
         """Perform a check for a specific shell builder."""
         raise NotImplementedError  # pragma: nocover
 
@@ -184,15 +229,14 @@ class CheckShebang(ShellBuilderLinter):
             return False
         return True
 
-    def _handle_jenkins_default(self) -> Tuple[LintResult, Optional[str]]:
+    def _handle_jenkins_default(self) -> LintCheckResult:
         """Return the appropriate result for a Jenkins-default shebang."""
         if self._ctx.config.getboolean('allow_default_shebang'):
             return LintResult.SKIP, None
         else:
             return LintResult.FAIL, "Shebang is Jenkins' default"
 
-    def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
-                                                                Optional[str]]:
+    def shell_check(self, shell_script: Optional[str]) -> LintCheckResult:
         """Check a shell script for an appropriate shebang."""
         if shell_script is None:
             return LintResult.SKIP, None
