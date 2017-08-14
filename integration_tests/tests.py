@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+import socket
 import subprocess
 from collections import namedtuple
 from glob import iglob
@@ -21,15 +22,23 @@ import pytest
 import yaml
 
 
+def get_available_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
+
+
 JJB_CONFIG = '''\
 [job_builder]
 ignore_cache=True
 
 [jenkins]
-url=http://0.0.0.0:8080/
+url=http://0.0.0.0:{}/
 user=XXX
 password=XXX
-'''
+'''.format(get_available_port())
 
 
 def _direct_runner(tmpdir, config):
@@ -52,16 +61,14 @@ def _direct_runner(tmpdir, config):
 
 
 def _jjb_subcommand_runner(tmpdir, config):
-    config_args = []
-    if config is not None:
-        conf_file = tmpdir.join('config.ini')
-        config = '\n'.join([JJB_CONFIG, config])
-        conf_file.write(config)
-        config_args = ['--conf', str(conf_file)]
+    conf_file = tmpdir.join('config.ini')
+    config = '\n'.join([JJB_CONFIG, config or ''])
+    conf_file.write(config)
     success = True
     try:
         output = subprocess.check_output([
-            'jenkins-jobs'] + config_args + ['lint', os.path.join(tmpdir)])
+            'jenkins-jobs', '--conf', str(conf_file),
+            'lint', os.path.join(tmpdir)])
     except subprocess.CalledProcessError as exc:
         output = exc.output
         success = False
