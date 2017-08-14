@@ -93,6 +93,37 @@ class EnsureTimestamps(JobLinter):
         return result, None
 
 
+class CheckEnvInject(JobLinter):
+    """Ensure that required environment variables are injected."""
+
+    default_config = {
+        'required_environment_settings': '',
+    }
+
+    description = 'checking environment variable injection'
+    _xpath = './properties/EnvInjectJobProperty/info/propertiesContent'
+
+    def actual_check(self) -> LintCheckResult:
+        """Check that configured lines are present in propertiesContent."""
+        required_environment_settings = self._ctx.config.getlist(
+            'required_environment_settings')
+        if not required_environment_settings:
+            return LintResult.SKIP, None
+        properties_content = self._ctx.tree.find(self._xpath)
+        if properties_content is None:
+            return LintResult.FAIL, 'Injection unexpectedly unconfigured'
+        if properties_content.text is None:  # pragma: nocover
+            # Integration tests can't produce input that fails this way, so we
+            # can't get test coverage
+            return LintResult.FAIL, 'Injected properties empty'
+        configured_properties = properties_content.text.split('\n')
+        for required_setting in required_environment_settings:
+            if required_setting not in configured_properties:
+                return LintResult.FAIL, 'Did not find {}'.format(
+                    required_setting)
+        return LintResult.PASS, None
+
+
 class CheckJobReferences(JobLinter):
     """Ensure that jobs referenced for triggering exist."""
 

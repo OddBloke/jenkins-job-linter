@@ -14,6 +14,21 @@ Configuration Options
 
 No configuration options.
 
+``check_env_inject``
+--------------------
+
+If required environment settings are configured (see below), ensure
+that all jobs have an inject property with a properties-content that
+contain those environment settings.  By default, this will run, but
+will always skip if no requirements are specified.
+
+Configuration Options
+~~~~~~~~~~~~~~~~~~~~~
+
+``required_configuration_settings``
+    A comma-separated list of environment variable setting lines that
+    should be present in job environments.
+
 ``check_for_empty_shell``
 -------------------------
 

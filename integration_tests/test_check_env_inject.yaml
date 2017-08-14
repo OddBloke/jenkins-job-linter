@@ -1,0 +1,140 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run =
+            check_env_inject
+cases:
+    - name: test_no_environment_and_no_config_passes
+      description: |
+          Test that, by default, the linter doesn't cause errors if not
+          configured
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: ""
+      expect_success: True
+
+    - name: test_entirely_missing_inject_stanza
+      description: |
+          Test that, with config, the linter will fail if there is no inject
+          stanza in the job configuration
+      jobs.yaml: |
+          - job:
+              name: test-job
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this
+      expected_output: |
+        test-job: checking environment variable injection: FAIL: Injection unexpectedly unconfigured
+      expect_success: False
+
+    - name: test_single_configured_value_failure
+      description: |
+          Test that, with config for a single value, the linter will fail if an
+          inject stanza is missing the appropriate configuration
+      jobs.yaml: |
+          - job:
+              name: test-job
+              properties:
+                  - inject:
+                      properties-content: |
+                          WRONG=thing
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this
+      expected_output: |
+        test-job: checking environment variable injection: FAIL: Did not find SET=this
+      expect_success: False
+
+    - name: test_happy_path
+      description: |
+          Test that the linter doesn't cause errors for valid configuration
+      jobs.yaml: |
+          - job:
+              name: test-job
+              properties:
+                  - inject:
+                      properties-content: |
+                          SET=this
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this
+      expected_output: ""
+      expect_success: True
+
+    - name: test_multiple_configured_value_failure
+      description: |
+          Test that, with config for multiple values, the linter will fail if
+          is an inject stanza missing the appropriate configuration
+      jobs.yaml: |
+          - job:
+              name: test-job
+              properties:
+                  - inject:
+                      properties-content: |
+                          WRONG=thing
+                          ANOTHER=wrong
+                          STILL=wrong
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this, OR=this
+      expected_output: |
+        test-job: checking environment variable injection: FAIL: Did not find SET=this
+      expect_success: False
+
+    - name: test_partial_match_still_fails
+      description: |
+          Test that, with config for multiple values, the linter will fail if
+          the inject stanza is missing one of them
+      jobs.yaml: |
+          - job:
+              name: test-job
+              properties:
+                  - inject:
+                      properties-content: |
+                          SET=this
+                          ANOTHER=wrong
+                          STILL=wrong
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this, OR=this
+      expected_output: |
+        test-job: checking environment variable injection: FAIL: Did not find OR=this
+      expect_success: False
+
+    - name: test_happy_path_with_multiple_things_configured
+      description: |
+          Test that the linter doesn't cause errors for valid configuration
+          with multiple required settings
+      jobs.yaml: |
+          - job:
+              name: test-job
+              properties:
+                  - inject:
+                      properties-content: |
+                          ALSO=this
+                          AND=this
+                          SET=this
+      config: |
+          [job_linter]
+          only_run =
+            check_env_inject
+          [job_linter:check_env_inject]
+          required_environment_settings = SET=this, AND=this, ALSO=this
+      expected_output: ""
+      expect_success: True
