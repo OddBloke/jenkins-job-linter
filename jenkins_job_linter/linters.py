@@ -34,6 +34,9 @@ class LintResult(Enum):
     SKIP = True
 
 
+LintCheckResult = Tuple[LintResult, Optional[str]]
+
+
 class Linter:
     """A super-class capturing the common linting pattern."""
 
@@ -48,11 +51,11 @@ class Linter:
         """
         self._ctx = ctx
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Perform the actual linting check."""
         raise NotImplementedError  # pragma: nocover
 
-    def check(self) -> Tuple[LintResult, Optional[str]]:
+    def check(self) -> LintCheckResult:
         """Check the root tag of the object and call actual_check."""
         if self._ctx.tree.getroot().tag != self.root_tag:
             return LintResult.SKIP, None
@@ -82,7 +85,7 @@ class EnsureTimestamps(JobLinter):
     _xpath = (
         './buildWrappers/hudson.plugins.timestamper.TimestamperBuildWrapper')
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Check that the TimestamperBuildWrapper element is present."""
         result = LintResult.FAIL
         if self._ctx.tree.find(self._xpath) is not None:
@@ -98,7 +101,7 @@ class CheckJobReferences(JobLinter):
         './builders/hudson.plugins.parameterizedtrigger.TriggerBuilder/configs'
         '/*/projects')
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """Check referenced jobs against RunContext.object_names."""
         project_nodes = self._ctx.tree.findall(self._xpath)
         for node in project_nodes:
@@ -116,7 +119,7 @@ class ShellBuilderLinter(JobLinter):
 
     _xpath = './builders/hudson.tasks.Shell/command'
 
-    def actual_check(self) -> Tuple[LintResult, Optional[str]]:
+    def actual_check(self) -> LintCheckResult:
         """
         Iterate over the shell builders in a job calling self.shell_check.
 
@@ -134,8 +137,7 @@ class ShellBuilderLinter(JobLinter):
                 return result, text
         return LintResult.PASS, None
 
-    def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
-                                                                Optional[str]]:
+    def shell_check(self, shell_script: Optional[str]) -> LintCheckResult:
         """Perform a check for a specific shell builder."""
         raise NotImplementedError  # pragma: nocover
 
@@ -184,15 +186,14 @@ class CheckShebang(ShellBuilderLinter):
             return False
         return True
 
-    def _handle_jenkins_default(self) -> Tuple[LintResult, Optional[str]]:
+    def _handle_jenkins_default(self) -> LintCheckResult:
         """Return the appropriate result for a Jenkins-default shebang."""
         if self._ctx.config.getboolean('allow_default_shebang'):
             return LintResult.SKIP, None
         else:
             return LintResult.FAIL, "Shebang is Jenkins' default"
 
-    def shell_check(self, shell_script: Optional[str]) -> Tuple[LintResult,
-                                                                Optional[str]]:
+    def shell_check(self, shell_script: Optional[str]) -> LintCheckResult:
         """Check a shell script for an appropriate shebang."""
         if shell_script is None:
             return LintResult.SKIP, None
