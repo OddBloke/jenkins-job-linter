@@ -1,5 +1,5 @@
 name: jenkins-job-linter
-version: '0.8.0'
+version: '0.9.0'
 summary: Perform linting checks against a directory of Jenkins job XML
 description: |
   Given the output of jenkins-job-builder's test command, ensure that the
