@@ -14,7 +14,7 @@
 """A collection of linters for Jenkins job XML."""
 import re
 from enum import Enum
-from typing import Any, Dict, Optional, Set, Tuple  # noqa
+from typing import Any, Dict, List, Optional, Set, Tuple  # noqa
 
 from stevedore.extension import ExtensionManager
 
@@ -103,6 +103,22 @@ class CheckEnvInject(JobLinter):
     description = 'checking environment variable injection'
     _xpath = './properties/EnvInjectJobProperty/info/propertiesContent'
 
+    def _check_properties(
+            self, properties_content: str,
+            required_environment_settings: List[str]) -> LintCheckResult:
+        """
+        Check that properties are correctly configured.
+
+        This assumes that sanity checking of the parameters has already
+        happened.
+        """
+        configured_properties = properties_content.split('\n')
+        for required_setting in required_environment_settings:
+            if required_setting not in configured_properties:
+                return LintResult.FAIL, 'Did not find {}'.format(
+                    required_setting)
+        return LintResult.PASS, None
+
     def actual_check(self) -> LintCheckResult:
         """Check that configured lines are present in propertiesContent."""
         required_environment_settings = self._ctx.config.getlist(
@@ -116,12 +132,8 @@ class CheckEnvInject(JobLinter):
             # Integration tests can't produce input that fails this way, so we
             # can't get test coverage
             return LintResult.FAIL, 'Injected properties empty'
-        configured_properties = properties_content.text.split('\n')
-        for required_setting in required_environment_settings:
-            if required_setting not in configured_properties:
-                return LintResult.FAIL, 'Did not find {}'.format(
-                    required_setting)
-        return LintResult.PASS, None
+        return self._check_properties(properties_content.text,
+                                      required_environment_settings)
 
 
 class CheckJobReferences(JobLinter):
