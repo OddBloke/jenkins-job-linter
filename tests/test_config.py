@@ -72,3 +72,11 @@ class TestFilterConfig:
         config.read_dict({'job_linter': {'opt': option_content}})
         filtered_config = _filter_config(config)
         assert expected == filtered_config.getlist('job_linter', 'opt')
+
+    def test_sectionproxy_getlist(self, mocker):
+        mocker.patch('jenkins_job_linter.config.GLOBAL_CONFIG_DEFAULTS', {})
+        mocker.patch('jenkins_job_linter.config.LINTERS', {})
+        config = configparser.ConfigParser()
+        config.read_dict({'job_linter': {'opt': 'content'}})
+        filtered_config = _filter_config(config)
+        assert ['content'] == filtered_config['job_linter'].getlist('opt')

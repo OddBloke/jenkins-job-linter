@@ -26,7 +26,8 @@ GLOBAL_CONFIG_DEFAULTS = {
 class GetListConfigParser(ConfigParser):
     """A ConfigParser subclass that implements a getlist method."""
 
-    def getlist(self, section: str, option: str) -> List[str]:
+    def getlist(self, section: str, option: str,
+                *args: Any, **kwargs: Any) -> List[str]:
         """Parse an option, splitting it by commas and stripping whitespace."""
         def commas_to_list(value: str) -> List[str]:
             if not value:
@@ -35,7 +36,8 @@ class GetListConfigParser(ConfigParser):
 
         # These type shenanigans can be removed once
         # https://github.com/python/typeshed/pull/1542 is released
-        ret = self._get_conv(section, option, commas_to_list)  # type: ignore
+        ret = self._get_conv(  # type: ignore
+            section, option, commas_to_list, *args, **kwargs)
         return cast(List[str], ret)
 
 
