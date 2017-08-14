@@ -52,16 +52,14 @@ def _direct_runner(tmpdir, config):
 
 
 def _jjb_subcommand_runner(tmpdir, config):
-    config_args = []
-    if config is not None:
-        conf_file = tmpdir.join('config.ini')
-        config = '\n'.join([JJB_CONFIG, config])
-        conf_file.write(config)
-        config_args = ['--conf', str(conf_file)]
+    conf_file = tmpdir.join('config.ini')
+    config = '\n'.join([JJB_CONFIG, config or ''])
+    conf_file.write(config)
     success = True
     try:
         output = subprocess.check_output([
-            'jenkins-jobs'] + config_args + ['lint', os.path.join(tmpdir)])
+            'jenkins-jobs', '--conf', str(conf_file),
+            'lint', os.path.join(tmpdir)])
     except subprocess.CalledProcessError as exc:
         output = exc.output
         success = False
