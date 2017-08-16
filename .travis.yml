@@ -8,6 +8,7 @@ python: 3.6
 env:
  - TOX_ENV=codecov
  - TOX_ENV=integration_tests
+ - TOX_ENV=integration_tests_with_jjb_trunk
  - TOX_ENV=py36
  - TOX_ENV=lint
  - TOX_ENV=mypy
