@@ -8,3 +8,16 @@
 [![Code Climate](https://codeclimate.com/github/OddBloke/jenkins-job-linter/badges/gpa.svg)](https://codeclimate.com/github/OddBloke/jenkins-job-linter)
 
 Perform linting checks against a directory of Jenkins job XML
+
+## Getting Started
+
+```sh
+virtualenv -p $(which python3) jjl
+. ./jjl/bin/activate
+pip install jenkins-job-linter
+jenkins-jobs lint path/to/my/job/directory
+```
+
+## Documentation
+
+See http://jenkins-job-linter.readthedocs.io/en/latest/ for the latest documentation.
