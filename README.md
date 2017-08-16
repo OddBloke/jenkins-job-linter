@@ -7,7 +7,7 @@
 [![Documentation Status](https://readthedocs.org/projects/jenkins-job-linter/badge/?version=latest)](http://jenkins-job-linter.readthedocs.io/en/latest/?badge=latest)
 [![Code Climate](https://codeclimate.com/github/OddBloke/jenkins-job-linter/badges/gpa.svg)](https://codeclimate.com/github/OddBloke/jenkins-job-linter)
 
-Perform linting checks against a directory of Jenkins job XML
+Perform linting checks against Jenkins Job Builder XML
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ Perform linting checks against a directory of Jenkins job XML
 virtualenv -p $(which python3) jjl
 . ./jjl/bin/activate
 pip install jenkins-job-linter
-jenkins-jobs lint path/to/my/job/directory
+jenkins-jobs lint path/to/my/job/builder/definitions
 ```
 
 ## Documentation
