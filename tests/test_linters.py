@@ -18,6 +18,7 @@ from xml.etree import ElementTree
 import pytest
 
 from jenkins_job_linter.linters import (
+    CheckColumnConfiguration,
     CheckEnvInject,
     CheckForEmptyShell,
     CheckJobReferences,
@@ -220,6 +221,28 @@ class TestCheckJobReferences:
             LintContext({}, RunContext(['object']), tree))
         result, _ = linter.check()
         assert result is LintResult.FAIL
+
+
+class TestCheckColumnConfiguration:
+
+    @pytest.mark.parametrize('expected,xml_string', (
+        (LintResult.SKIP, '<not_a_view/>'),
+        (LintResult.SKIP, '<project/>'),
+        (LintResult.PASS, '''\
+            <hudson.model.ListView>
+                <columns>
+                    <something/>
+                </columns>
+            </hudson.model.ListView>'''),
+        (LintResult.FAIL,
+         '<hudson.model.ListView><columns /></hudson.model.ListView>'),
+        (LintResult.FAIL, '<hudson.model.ListView/>'),
+    ))
+    def test_linter(self, expected, xml_string):
+        tree = _elementtree_from_str(xml_string)
+        linter = CheckColumnConfiguration(LintContext({}, None, tree))
+        result, _ = linter.check()
+        assert result is expected
 
 
 class TestCheckEnvInject:

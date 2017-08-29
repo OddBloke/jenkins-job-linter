@@ -1,10 +1,33 @@
 cases:
-    - name: test_no_errors_against_views
+    - name: test_no_errors_against_list_views
       description: |
           Test that views are ignored by linters
       jobs.yaml: |
           - view:
               name: test-view
-              type: list-view
+              view-type: list
+              columns:
+                  - job
       expected_output: ""
       expect_success: True
+
+    - name: test_no_errors_against_pipeline_views
+      description: |
+          Test that pipeline views are ignored by column linter
+      jobs.yaml: |
+          - view:
+              name: test-view
+              view-type: pipeline
+      expected_output: ""
+      expect_success: True
+
+    - name: test_list_view_with_no_columns_causes_error
+      description: |
+          Test that a list view without any configured columns causes an error
+      jobs.yaml: |
+          - view:
+              name: test-view
+              view-type: list
+      expected_output: |
+          test-view: checking column configuration: FAIL: No columns configured
+      expect_success: False
