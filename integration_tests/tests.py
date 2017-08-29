@@ -52,8 +52,10 @@ def _direct_runner(tmpdir, config):
         config_args = ['--conf', str(conf_file)]
     success = True
     try:
-        output = subprocess.check_output(['jenkins-job-linter', output_dir]
-                                         + config_args)
+        output = subprocess.check_output(
+            ['jenkins-job-linter', output_dir] + config_args,
+            stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError as exc:
         output = exc.output
         success = False
@@ -68,7 +70,9 @@ def _jjb_subcommand_runner(tmpdir, config):
     try:
         output = subprocess.check_output([
             'jenkins-jobs', '--conf', str(conf_file),
-            'lint', os.path.join(tmpdir)])
+            'lint', os.path.join(tmpdir)],
+            stderr=subprocess.STDOUT,
+        )
     except subprocess.CalledProcessError as exc:
         output = exc.output
         success = False

@@ -35,6 +35,7 @@ class LintSubCommand(test.TestSubCommand):
 
     def parse_args(self, subparser: argparse._SubParsersAction) -> None:
         """Create a lint subparser and add the necessary options."""
+        logging.getLogger('jenkins_jobs').setLevel(logging.CRITICAL)
         lint = subparser.add_parser('lint')
 
         self.parse_option_recursive_exclude(lint)
