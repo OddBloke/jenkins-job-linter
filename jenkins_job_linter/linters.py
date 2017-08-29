@@ -78,6 +78,12 @@ class JobLinter(Linter):
     root_tag = 'project'
 
 
+class ListViewLinter(Linter):
+    """A Linter that should operate against Jenkins list view objects."""
+
+    root_tag = 'hudson.model.ListView'
+
+
 class EnsureTimestamps(JobLinter):
     """Ensure that a job is configured with timestamp output."""
 
@@ -154,6 +160,20 @@ class CheckJobReferences(JobLinter):
             if project not in self._ctx.run_ctx.object_names:
                 return (LintResult.FAIL,
                         'Reference to missing object {}'.format(project))
+        return LintResult.PASS, None
+
+
+class CheckColumnConfiguration(ListViewLinter):
+    """Ensure that each list view has at least one column configured."""
+
+    description = 'checking column configuration'
+    _xpath = './columns/*'
+
+    def actual_check(self) -> LintCheckResult:
+        """Check that there are some column nodes configured."""
+        column_nodes = self._ctx.tree.findall(self._xpath)
+        if column_nodes is None or len(column_nodes) == 0:
+            return LintResult.FAIL, 'No columns configured'
         return LintResult.PASS, None
 
 
