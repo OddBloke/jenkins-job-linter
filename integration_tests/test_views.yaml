@@ -5,6 +5,6 @@ cases:
       jobs.yaml: |
           - view:
               name: test-view
-              type: list-view
+              view-type: list
       expected_output: ""
       expect_success: True
