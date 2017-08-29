@@ -15,8 +15,8 @@
 """Run a series of checks against compiled job XML."""
 import os
 import sys
-from configparser import ConfigParser, SectionProxy
-from typing import Optional, cast
+from configparser import ConfigParser
+from typing import Optional
 from xml.etree import ElementTree
 
 import click
@@ -36,10 +36,7 @@ def lint_job_xml(ctx: RunContext, job_name: str, tree: ElementTree.ElementTree,
         only_run = config.getlist('job_linter', 'only_run')
         if only_run and linter_name not in only_run:
             continue
-        # This cast is needed until
-        # https://github.com/python/typeshed/pull/1527 is fixed
-        section = cast(SectionProxy,
-                       config['job_linter:{}'.format(linter_name)])
+        section = config['job_linter:{}'.format(linter_name)]
         result, text = linter(LintContext(section, ctx, tree)).check()
         if not result.value:
             success = False
