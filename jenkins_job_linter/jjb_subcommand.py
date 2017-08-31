@@ -35,7 +35,6 @@ class LintSubCommand(test.TestSubCommand):
 
     def parse_args(self, subparser: argparse._SubParsersAction) -> None:
         """Create a lint subparser and add the necessary options."""
-        logging.getLogger('jenkins_jobs').setLevel(logging.CRITICAL)
         lint = subparser.add_parser('lint')
 
         self.parse_option_recursive_exclude(lint)
@@ -45,6 +44,7 @@ class LintSubCommand(test.TestSubCommand):
     def execute(self, options: argparse.Namespace,
                 jjb_config: JJBConfig) -> None:
         """Generate output in a tempdir and run our linting against it."""
+        logging.getLogger('jenkins_jobs').setLevel(logging.CRITICAL)
         options.config_xml = False
         with tempfile.TemporaryDirectory() as tmpdir:
             LOGGER.debug('Compiling jobs to temporary directory: %s', tmpdir)
