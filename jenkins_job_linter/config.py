@@ -13,7 +13,7 @@
 # limitations under the License.
 """Handle configuration for jenkins-job-linter."""
 from configparser import ConfigParser
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List
 
 from jenkins_job_linter.linters import LINTERS
 
@@ -26,19 +26,14 @@ GLOBAL_CONFIG_DEFAULTS = {
 class GetListConfigParser(ConfigParser):
     """A ConfigParser subclass that implements a getlist method."""
 
-    def getlist(self, section: str, option: str,
-                *args: Any, **kwargs: Any) -> List[str]:
+    def getlist(self, section: str, option: str, **kwargs: Any) -> List[str]:
         """Parse an option, splitting it by commas and stripping whitespace."""
         def commas_to_list(value: str) -> List[str]:
             if not value:
                 return []
             return [item.strip() for item in value.split(',')]
 
-        # These type shenanigans can be removed once
-        # https://github.com/python/typeshed/pull/1542 is released
-        ret = self._get_conv(  # type: ignore
-            section, option, commas_to_list, *args, **kwargs)
-        return cast(List[str], ret)
+        return self._get_conv(section, option, commas_to_list, **kwargs)
 
 
 def _get_default_linter_configs() -> Dict[str, Dict[str, Any]]:
