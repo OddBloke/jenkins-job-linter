@@ -28,6 +28,7 @@ cases:
           - view:
               name: test-view
               view-type: list
+              columns: []
       expected_output: |
           test-view: checking column configuration: FAIL: No columns configured
       expect_success: False
