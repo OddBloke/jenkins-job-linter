@@ -9,6 +9,11 @@ Linters
 Ensure that a job is configured to produce timestamps in its console
 output.
 
+``ensure_workspace_cleanup``
+----------------------------
+
+Ensure that a job is configured to clean the workspace prior to execution.
+
 Configuration Options
 ~~~~~~~~~~~~~~~~~~~~~
 

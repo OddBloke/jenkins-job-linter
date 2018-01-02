@@ -24,6 +24,7 @@ from jenkins_job_linter.linters import (
     CheckJobReferences,
     CheckShebang,
     EnsureTimestamps,
+    EnsureWorkspaceCleanup,
     Linter,
     LintResult,
 )
@@ -170,6 +171,24 @@ class TestEnsureTimestamps:
     def test_linter(self, expected, xml_string):
         tree = _elementtree_from_str(xml_string)
         linter = EnsureTimestamps(LintContext({}, None, tree))
+        result, _ = linter.check()
+        assert result is expected
+
+
+class TestEnsureWorkspaceCleanup:
+
+    @pytest.mark.parametrize('expected,xml_string', (
+        (LintResult.SKIP, '<not_a_project/>'),
+        (LintResult.FAIL, '<project/>'),
+        (LintResult.PASS, '''\
+            <project>
+                <buildWrappers>
+                    <hudson.plugins.ws__cleanup.PreBuildCleanup />
+                </buildWrappers>
+            </project>''')))
+    def test_linter(self, expected, xml_string):
+        tree = _elementtree_from_str(xml_string)
+        linter = EnsureWorkspaceCleanup(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
 

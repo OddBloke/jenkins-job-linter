@@ -9,7 +9,7 @@ cases:
       config: |
           [job_linter]
           disable_linters=
-            ensure_timestamps
+            ensure_timestamps,ensure_workspace_cleanup
       expect_success: True
 
     - name: test_disable_multiple_linters_config
@@ -24,7 +24,7 @@ cases:
       config: |
           [job_linter]
           disable_linters=
-            ensure_timestamps,check_for_empty_shell
+            ensure_timestamps,ensure_workspace_cleanup,check_for_empty_shell
       expect_success: True
 
     - name: test_only_run

@@ -9,5 +9,6 @@ cases:
                 - shell: "#!/bin/sh -eux"
               wrappers:
                 - timestamps
+                - workspace-cleanup
       expected_output: ""
       expect_success: True
