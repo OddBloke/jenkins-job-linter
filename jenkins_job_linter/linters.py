@@ -99,6 +99,21 @@ class EnsureTimestamps(JobLinter):
         return result, None
 
 
+class EnsureWorkspaceCleanup(JobLinter):
+    """Ensure that a job workspace is cleaned before execution."""
+
+    description = 'checking for workspace cleanup'
+    _xpath = (
+        './buildWrappers/hudson.plugins.ws__cleanup.PreBuildCleanup')
+
+    def actual_check(self) -> LintCheckResult:
+        """Check that the PreBuildCleanup element is present."""
+        result = LintResult.FAIL
+        if self._ctx.tree.find(self._xpath) is not None:
+            result = LintResult.PASS
+        return result, None
+
+
 class CheckEnvInject(JobLinter):
     """Ensure that required environment variables are injected."""
 

@@ -1,0 +1,16 @@
+defaults:
+    config: |
+        [job_linter]
+        only_run =
+            ensure_workspace_cleanup
+
+cases:
+    - name: test_missing_ws_cleanup
+      description: |
+          Test that missing workspace cleanup cause a linting failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+      expected_output: |
+        test-job: checking for workspace cleanup: FAIL
+      expect_success: False
