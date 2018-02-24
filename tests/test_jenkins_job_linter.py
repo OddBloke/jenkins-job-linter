@@ -218,7 +218,7 @@ class TestLintJobsFromDirectory:
         assert passed_config['job_linter']['test'] == 'this'
 
 
-class TestMain:
+class TestLintDirectory:
 
     def test_argument_passed_through(self, mocker):
         runner = CliRunner()
@@ -228,7 +228,7 @@ class TestMain:
 
         with runner.isolated_filesystem():
             os.mkdir(dirname)
-            runner.invoke(main, [dirname])
+            runner.invoke(main, ['lint-directory', dirname])
 
         assert 1 == lint_jobs_mock.call_count
         assert mocker.call(dirname, mocker.ANY) == lint_jobs_mock.call_args
@@ -243,7 +243,8 @@ class TestMain:
             os.mkdir(dirname)
             with open('config.ini', 'w') as config_ini:
                 config_ini.write(config)
-            runner.invoke(main, [dirname, '--conf', 'config.ini'])
+            runner.invoke(
+                main, ['--conf', 'config.ini', 'lint-directory', dirname])
 
         assert 1 == lint_jobs_mock.call_count
         config = lint_jobs_mock.call_args[0][1]
@@ -258,7 +259,7 @@ class TestMain:
         dirname = 'some_dir'
         with runner.isolated_filesystem():
             os.mkdir(dirname)
-            result = runner.invoke(main, [dirname])
+            result = runner.invoke(main, ['lint-directory', dirname])
         assert exit_code == result.exit_code
 
     @pytest.mark.parametrize('func', [
@@ -276,7 +277,7 @@ class TestMain:
         dirname = 'dirname'
         with runner.isolated_filesystem():
             func(dirname)
-            result = runner.invoke(main, [dirname])
+            result = runner.invoke(main, ['lint-directory', dirname])
         assert result.exit_code != 0
         assert lint_jobs_mock.call_count == 0
 
@@ -297,6 +298,7 @@ class TestMain:
         with runner.isolated_filesystem():
             os.mkdir(dirname)
             func(conf)
-            result = runner.invoke(main, [dirname, '--conf', conf])
+            result = runner.invoke(
+                main, ['--conf', conf, 'lint-directory', dirname])
         assert result.exit_code != 0
         assert lint_jobs_mock.call_count == 0

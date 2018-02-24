@@ -16,7 +16,7 @@
 import os
 import sys
 from configparser import ConfigParser
-from typing import Optional
+from typing import Optional, cast
 from xml.etree import ElementTree
 
 import click
@@ -61,16 +61,28 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     return success
 
 
-@click.command()
-@click.argument('compiled_job_directory',
-                type=click.Path(exists=True, file_okay=False))
+@click.group()
 @click.option('--conf', type=click.Path(exists=True, dir_okay=False))
-def main(compiled_job_directory: str, conf: Optional[str] = None) -> None:
-    """Take a directory of Jenkins job XML and run some checks against it."""
+@click.pass_context
+def main(ctx: click.Context, conf: Optional[str] = None) -> None:
+    """jenkins-job-linter: check your Jenkins jobs for common errors."""
     config = ConfigParser()
     if conf is not None:
         config.read(conf)
-    result = lint_jobs_from_directory(compiled_job_directory, config)
+    ctx.obj = config
+
+
+# Required until https://github.com/python/typeshed/issues/1918 is fixed
+main = cast(click.Group, main)
+
+
+@main.command(name='lint-directory')
+@click.argument('compiled_job_directory',
+                type=click.Path(exists=True, file_okay=False))
+@click.pass_context
+def lint_directory(ctx: click.Context, compiled_job_directory: str) -> None:
+    """Take a directory of Jenkins job XML and run some checks against it."""
+    result = lint_jobs_from_directory(compiled_job_directory, ctx.obj)
     if not result:
         sys.exit(1)
     sys.exit(0)

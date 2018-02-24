@@ -53,7 +53,8 @@ def _direct_runner(tmpdir, config):
     success = True
     try:
         output = subprocess.check_output(
-            ['jenkins-job-linter', output_dir] + config_args,
+            ['jenkins-job-linter'] + config_args
+            + ['lint-directory', output_dir],
             stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError as exc:
