@@ -149,7 +149,11 @@ def _jjb_subcommand_runner(tmpdir, config):
     return success, output.decode('utf-8')
 
 
-@pytest.fixture(params=['actual_jenkins', 'direct', 'jjb_subcommand'])
+@pytest.fixture(params=[
+    pytest.param('actual_jenkins', marks=pytest.mark.docker),
+    'direct',
+    'jjb_subcommand',
+])
 def runner(request):
     runner_funcs = {
         'actual_jenkins': _actual_jenkins_runner,
