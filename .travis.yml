@@ -1,8 +1,11 @@
 language: python
 dist: trusty
-sudo: disabled
+sudo: required
 
 cache: pip
+
+services:
+ - docker
 
 python: 3.6
 env:
@@ -21,6 +24,7 @@ matrix:
 
 install:
  - pip install tox
+ - docker pull jenkins/jenkins
 
 script:
  - tox -e $TOX_ENV
