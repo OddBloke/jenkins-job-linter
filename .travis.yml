@@ -10,8 +10,12 @@ services:
 python: 3.6
 env:
  - TOX_ENV=codecov
- - TOX_ENV=integration_tests
- - TOX_ENV=integration_tests_with_jjb_trunk
+ - TOX_ENV=integration_tests-not_docker
+ - TOX_ENV=integration_tests_with_jjb_trunk-not_docker
+ - TOX_ENV=integration_tests-docker
+   EXTRA_ARGS="-n1"
+ - TOX_ENV=integration_tests_with_jjb_trunk-docker
+   EXTRA_ARGS="-n1"
  - TOX_ENV=py36
  - TOX_ENV=lint
  - TOX_ENV=mypy
@@ -27,4 +31,4 @@ install:
  - docker pull jenkins/jenkins
 
 script:
- - tox -e $TOX_ENV
+ - tox -e $TOX_ENV -- $EXTRA_ARGS
