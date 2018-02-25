@@ -48,7 +48,15 @@ password={}
 
 
 class IntegrationTestRunner:
-    pass
+
+    def run_test_command(self, command):
+        success = True
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            output = exc.output
+            success = False
+        return success, output.decode('utf-8')
 
 
 class ActualJenkinsRunner(IntegrationTestRunner):
@@ -100,19 +108,11 @@ class ActualJenkinsRunner(IntegrationTestRunner):
                 ['jenkins-jobs'] + config_args + ['update', tmpdir]))
 
         # Lint the jobs from the running Jenkins
-        success = True
-        try:
-            output = subprocess.check_output(
-                ['jenkins-job-linter'] + config_args
-                + ['lint-jenkins', '--jenkins-url', url,
-                '--jenkins-username', 'admin',
-                '--jenkins-password', password],
-                stderr=subprocess.STDOUT,
-            )
-        except subprocess.CalledProcessError as exc:
-            output = exc.output
-            success = False
-        return success, output.decode('utf-8')
+        return self.run_test_command(
+            ['jenkins-job-linter'] + config_args
+            + ['lint-jenkins', '--jenkins-url', url,
+            '--jenkins-username', 'admin',
+            '--jenkins-password', password])
 
     def run_test(self, tmpdir, config):
         try:
@@ -133,17 +133,9 @@ class DirectRunner(IntegrationTestRunner):
             conf_file = tmpdir.join('config.ini')
             conf_file.write(config)
             config_args = ['--conf', str(conf_file)]
-        success = True
-        try:
-            output = subprocess.check_output(
-                ['jenkins-job-linter'] + config_args
-                + ['lint-directory', output_dir],
-                stderr=subprocess.STDOUT,
-            )
-        except subprocess.CalledProcessError as exc:
-            output = exc.output
-            success = False
-        return success, output.decode('utf-8')
+        return self.run_test_command(
+            ['jenkins-job-linter'] + config_args + ['lint-directory',
+                                                    output_dir])
 
 
 class JJBSubcommandRunner(IntegrationTestRunner):
@@ -152,17 +144,9 @@ class JJBSubcommandRunner(IntegrationTestRunner):
         conf_file = tmpdir.join('config.ini')
         config = '\n'.join([_generate_jjb_config(), config or ''])
         conf_file.write(config)
-        success = True
-        try:
-            output = subprocess.check_output([
-                'jenkins-jobs', '--conf', str(conf_file),
-                'lint', os.path.join(tmpdir)],
-                stderr=subprocess.STDOUT,
-            )
-        except subprocess.CalledProcessError as exc:
-            output = exc.output
-            success = False
-        return success, output.decode('utf-8')
+        return self.run_test_command([
+            'jenkins-jobs', '--conf', str(conf_file),
+            'lint', os.path.join(tmpdir)])
 
 
 @pytest.fixture(params=[
