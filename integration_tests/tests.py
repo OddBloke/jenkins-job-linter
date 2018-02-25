@@ -47,106 +47,116 @@ password={}
 '''.format(url, password)
 
 
-def _actual_jenkins_runner(tmpdir, config):
-    container_id = None
+class IntegrationTestRunner:
+    pass
 
-    def check_docker_output(args):
-        return subprocess.check_output(
-            ['docker'] + args).decode('utf-8').strip()
 
-    def do_retry(func):
-        start_time = time.time()
-        while time.time() < start_time + 30:
+class ActualJenkinsRunner(IntegrationTestRunner):
+
+    def run_test(self, tmpdir, config):
+        container_id = None
+
+        def check_docker_output(args):
+            return subprocess.check_output(
+                ['docker'] + args).decode('utf-8').strip()
+
+        def do_retry(func):
+            start_time = time.time()
+            while time.time() < start_time + 30:
+                try:
+                    return func()
+                except subprocess.CalledProcessError:
+                    time.sleep(1)
+            else:
+                check_docker_output(['logs', container_id])
+                raise Exception('Retrying failed')
+
+        try:
+            # Set up Jenkins running in a Docker container
+            container_id = check_docker_output(['run', '-d', 'jenkins/jenkins'])
+            inspect_output = json.loads(
+                check_docker_output(['inspect', container_id]))
+            url = 'http://{}:8080'.format(
+                inspect_output[0]['NetworkSettings']['IPAddress'])
+
+            password = do_retry(
+                lambda: check_docker_output(
+                    ['exec', container_id,
+                    'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
+
+            # Write out a config file pointing to our Docker Jenkins
+            conf_file = tmpdir.join('config.ini')
+            config = '\n'.join(
+                [_generate_jjb_config(url=url, password=password), config or ''])
+            conf_file.write(config)
+
+            # Update the running Jenkins from our job configuration
+            config_args = ['--conf', str(conf_file)]
+
+            do_retry(
+                lambda: subprocess.check_output(
+                    ['jenkins-jobs'] + config_args + ['update', tmpdir]))
+
+            # Lint the jobs from the running Jenkins
+            success = True
             try:
-                return func()
-            except subprocess.CalledProcessError:
-                time.sleep(1)
-        else:
-            check_docker_output(['logs', container_id])
-            raise Exception('Retrying failed')
+                output = subprocess.check_output(
+                    ['jenkins-job-linter'] + config_args
+                    + ['lint-jenkins', '--jenkins-url', url,
+                    '--jenkins-username', 'admin',
+                    '--jenkins-password', password],
+                    stderr=subprocess.STDOUT,
+                )
+            except subprocess.CalledProcessError as exc:
+                output = exc.output
+                success = False
+            return success, output.decode('utf-8')
+        finally:
+            if container_id is not None:
+                check_docker_output(['kill', container_id])
 
-    try:
-        # Set up Jenkins running in a Docker container
-        container_id = check_docker_output(['run', '-d', 'jenkins/jenkins'])
-        inspect_output = json.loads(
-            check_docker_output(['inspect', container_id]))
-        url = 'http://{}:8080'.format(
-            inspect_output[0]['NetworkSettings']['IPAddress'])
 
-        password = do_retry(
-            lambda: check_docker_output(
-                ['exec', container_id,
-                 'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
+class DirectRunner(IntegrationTestRunner):
 
-        # Write out a config file pointing to our Docker Jenkins
-        conf_file = tmpdir.join('config.ini')
-        config = '\n'.join(
-            [_generate_jjb_config(url=url, password=password), config or ''])
-        conf_file.write(config)
-
-        # Update the running Jenkins from our job configuration
-        config_args = ['--conf', str(conf_file)]
-
-        do_retry(
-            lambda: subprocess.check_output(
-                ['jenkins-jobs'] + config_args + ['update', tmpdir]))
-
-        # Lint the jobs from the running Jenkins
+    def run_test(self, tmpdir, config):
+        output_dir = os.path.join(tmpdir, 'output')
+        subprocess.check_call([
+            'jenkins-jobs', 'test', os.path.join(tmpdir), '-o', output_dir])
+        config_args = []
+        if config is not None:
+            conf_file = tmpdir.join('config.ini')
+            conf_file.write(config)
+            config_args = ['--conf', str(conf_file)]
         success = True
         try:
             output = subprocess.check_output(
                 ['jenkins-job-linter'] + config_args
-                + ['lint-jenkins', '--jenkins-url', url,
-                   '--jenkins-username', 'admin',
-                   '--jenkins-password', password],
+                + ['lint-directory', output_dir],
                 stderr=subprocess.STDOUT,
             )
         except subprocess.CalledProcessError as exc:
             output = exc.output
             success = False
         return success, output.decode('utf-8')
-    finally:
-        if container_id is not None:
-            check_docker_output(['kill', container_id])
 
 
-def _direct_runner(tmpdir, config):
-    output_dir = os.path.join(tmpdir, 'output')
-    subprocess.check_call([
-        'jenkins-jobs', 'test', os.path.join(tmpdir), '-o', output_dir])
-    config_args = []
-    if config is not None:
+class JJBSubcommandRunner(IntegrationTestRunner):
+
+    def run_test(self, tmpdir, config):
         conf_file = tmpdir.join('config.ini')
+        config = '\n'.join([_generate_jjb_config(), config or ''])
         conf_file.write(config)
-        config_args = ['--conf', str(conf_file)]
-    success = True
-    try:
-        output = subprocess.check_output(
-            ['jenkins-job-linter'] + config_args
-            + ['lint-directory', output_dir],
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as exc:
-        output = exc.output
-        success = False
-    return success, output.decode('utf-8')
-
-
-def _jjb_subcommand_runner(tmpdir, config):
-    conf_file = tmpdir.join('config.ini')
-    config = '\n'.join([_generate_jjb_config(), config or ''])
-    conf_file.write(config)
-    success = True
-    try:
-        output = subprocess.check_output([
-            'jenkins-jobs', '--conf', str(conf_file),
-            'lint', os.path.join(tmpdir)],
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as exc:
-        output = exc.output
-        success = False
-    return success, output.decode('utf-8')
+        success = True
+        try:
+            output = subprocess.check_output([
+                'jenkins-jobs', '--conf', str(conf_file),
+                'lint', os.path.join(tmpdir)],
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as exc:
+            output = exc.output
+            success = False
+        return success, output.decode('utf-8')
 
 
 @pytest.fixture(params=[
@@ -160,16 +170,16 @@ def runner(request):
     if runners_to_skip and request.param in runners_to_skip:
         pytest.skip('unsupported runner')
     runner_funcs = {
-        'actual_jenkins': _actual_jenkins_runner,
-        'direct': _direct_runner,
-        'jjb_subcommand': _jjb_subcommand_runner,
+        'actual_jenkins': ActualJenkinsRunner(),
+        'direct': DirectRunner(),
+        'jjb_subcommand': JJBSubcommandRunner(),
     }
     return runner_funcs[request.param]
 
 
 def test_integration(runner, tmpdir, integration_testcase):
     tmpdir.join('jobs.yaml').write(integration_testcase.jobs_yaml)
-    success, output = runner(tmpdir, integration_testcase.config)
+    success, output = runner.run_test(tmpdir, integration_testcase.config)
     assert integration_testcase.expected_output == output
     assert integration_testcase.expect_success == success
 
