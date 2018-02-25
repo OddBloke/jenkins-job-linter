@@ -65,6 +65,7 @@ def lint_jobs_from_directory(compiled_job_directory: str,
 def lint_jobs_from_running_jenkins(config: ConfigParser, jenkins_url: str,
                                    jenkins_username: str,
                                    jenkins_password: str) -> bool:
+    """Load jobs from a running Jenkins and run linters against each one."""
     config = _filter_config(config)
     server = jenkins.Jenkins(
         jenkins_url, username=jenkins_username, password=jenkins_password)
