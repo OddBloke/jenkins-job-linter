@@ -91,7 +91,7 @@ class ActualJenkinsRunner(IntegrationTestRunner):
         password = self.do_retry(
             lambda: self.check_docker_output(
                 ['exec', self.container_id,
-                'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
+                 'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
 
         # Write out a config file pointing to our Docker Jenkins
         conf_file = tmpdir.join('config.ini')
@@ -111,8 +111,8 @@ class ActualJenkinsRunner(IntegrationTestRunner):
         return self.run_test_command(
             ['jenkins-job-linter'] + config_args
             + ['lint-jenkins', '--jenkins-url', url,
-            '--jenkins-username', 'admin',
-            '--jenkins-password', password])
+               '--jenkins-username', 'admin',
+               '--jenkins-password', password])
 
     def run_test(self, tmpdir, config):
         try:
