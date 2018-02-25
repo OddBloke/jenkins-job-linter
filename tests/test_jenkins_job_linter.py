@@ -301,7 +301,7 @@ class TestLintJobsFromRunningJenkins:
         jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
         jenkins_mock.return_value.get_jobs.return_value = [
             {'name': name} for name in job_names]
-        et_mock = mocker.patch('jenkins_job_linter.ElementTree')
+        mocker.patch('jenkins_job_linter.ElementTree')
         lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
 
         lint_jobs_from_running_jenkins(
