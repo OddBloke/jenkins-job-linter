@@ -302,3 +302,78 @@ class TestLintDirectory:
                 main, ['--conf', conf, 'lint-directory', dirname])
         assert result.exit_code != 0
         assert lint_jobs_mock.call_count == 0
+
+
+class TestLintJenkins:
+
+    def test_arguments_passed_through(self, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_running_jenkins')
+
+        url, username, password = 'url', 'username', 'password'
+
+        with runner.isolated_filesystem():
+            runner.invoke(main, ['lint-jenkins',
+                                 '--jenkins-url', url,
+                                 '--jenkins-username', username,
+                                 '--jenkins-password', password])
+
+        assert 1 == lint_jobs_mock.call_count
+        assert mocker.call(
+            url, username, password, mocker.ANY) == lint_jobs_mock.call_args
+
+    def test_config_parsed_and_passed(self, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_running_jenkins')
+
+        config = '[job_linter]\nkey=value'
+        with runner.isolated_filesystem():
+            with open('config.ini', 'w') as config_ini:
+                config_ini.write(config)
+            runner.invoke(
+                main, ['--conf', 'config.ini', 'lint-jenkins',
+                       '--jenkins-url', 'url',
+                       '--jenkins-username', 'username',
+                       '--jenkins-password', 'password'])
+
+        assert 1 == lint_jobs_mock.call_count
+        config = lint_jobs_mock.call_args[0][-1]
+        assert config['job_linter']['key'] == 'value'
+
+    @pytest.mark.parametrize('return_value,exit_code', ((False, 1), (True, 0)))
+    def test_exit_code(self, mocker, exit_code, return_value):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_running_jenkins')
+        lint_jobs_mock.return_value = return_value
+        with runner.isolated_filesystem():
+            result = runner.invoke(main, ['lint-jenkins',
+                                          '--jenkins-url', 'url',
+                                          '--jenkins-username', 'username',
+                                          '--jenkins-password', 'password'])
+        assert exit_code == result.exit_code
+
+    @pytest.mark.parametrize('func', [
+        # Non-existent conf file
+        lambda conf: None,
+        # Conf file is a directory
+        lambda conf: os.mkdir(conf),
+        # File isn't readable ("or" because .close() returns None)
+        lambda conf: open(conf, 'a').close() or os.chmod(conf, 0o000),
+    ])
+    def test_bad_config_input(self, func, mocker):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_running_jenkins')
+        conf = 'conf.ini'
+        with runner.isolated_filesystem():
+            func(conf)
+            result = runner.invoke(
+                main, ['--conf', conf, 'lint-jenkins',
+                       '--jenkins-url', 'url',
+                       '--jenkins-username', 'username',
+                       '--jenkins-password', 'password'])
+        assert result.exit_code != 0
+        assert lint_jobs_mock.call_count == 0
