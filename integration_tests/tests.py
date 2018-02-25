@@ -53,67 +53,73 @@ class IntegrationTestRunner:
 
 class ActualJenkinsRunner(IntegrationTestRunner):
 
-    def run_test(self, tmpdir, config):
-        container_id = None
+    def __init__(self):
+        self.container_id = None
 
-        def check_docker_output(args):
-            return subprocess.check_output(
-                ['docker'] + args).decode('utf-8').strip()
+    def check_docker_output(self, args):
+        return subprocess.check_output(
+            ['docker'] + args).decode('utf-8').strip()
 
-        def do_retry(func):
-            start_time = time.time()
-            while time.time() < start_time + 30:
-                try:
-                    return func()
-                except subprocess.CalledProcessError:
-                    time.sleep(1)
-            else:
-                check_docker_output(['logs', container_id])
-                raise Exception('Retrying failed')
-
-        try:
-            # Set up Jenkins running in a Docker container
-            container_id = check_docker_output(['run', '-d', 'jenkins/jenkins'])
-            inspect_output = json.loads(
-                check_docker_output(['inspect', container_id]))
-            url = 'http://{}:8080'.format(
-                inspect_output[0]['NetworkSettings']['IPAddress'])
-
-            password = do_retry(
-                lambda: check_docker_output(
-                    ['exec', container_id,
-                    'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
-
-            # Write out a config file pointing to our Docker Jenkins
-            conf_file = tmpdir.join('config.ini')
-            config = '\n'.join(
-                [_generate_jjb_config(url=url, password=password), config or ''])
-            conf_file.write(config)
-
-            # Update the running Jenkins from our job configuration
-            config_args = ['--conf', str(conf_file)]
-
-            do_retry(
-                lambda: subprocess.check_output(
-                    ['jenkins-jobs'] + config_args + ['update', tmpdir]))
-
-            # Lint the jobs from the running Jenkins
-            success = True
+    def do_retry(self, func):
+        start_time = time.time()
+        while time.time() < start_time + 30:
             try:
-                output = subprocess.check_output(
-                    ['jenkins-job-linter'] + config_args
-                    + ['lint-jenkins', '--jenkins-url', url,
-                    '--jenkins-username', 'admin',
-                    '--jenkins-password', password],
-                    stderr=subprocess.STDOUT,
-                )
-            except subprocess.CalledProcessError as exc:
-                output = exc.output
-                success = False
-            return success, output.decode('utf-8')
+                return func()
+            except subprocess.CalledProcessError:
+                time.sleep(1)
+        else:
+            self.check_docker_output(['logs', self.container_id])
+            raise Exception('Retrying failed')
+
+    def _run_test_without_cleanup(self, tmpdir, config):
+        # Set up Jenkins running in a Docker container
+        self.container_id = self.check_docker_output(
+            ['run', '-d', 'jenkins/jenkins'])
+        inspect_output = json.loads(
+            self.check_docker_output(['inspect', self.container_id]))
+        url = 'http://{}:8080'.format(
+            inspect_output[0]['NetworkSettings']['IPAddress'])
+
+        password = self.do_retry(
+            lambda: self.check_docker_output(
+                ['exec', self.container_id,
+                'cat', '/var/jenkins_home/secrets/initialAdminPassword']))
+
+        # Write out a config file pointing to our Docker Jenkins
+        conf_file = tmpdir.join('config.ini')
+        config = '\n'.join(
+            [_generate_jjb_config(url=url, password=password),
+                config or ''])
+        conf_file.write(config)
+
+        # Update the running Jenkins from our job configuration
+        config_args = ['--conf', str(conf_file)]
+
+        self.do_retry(
+            lambda: subprocess.check_output(
+                ['jenkins-jobs'] + config_args + ['update', tmpdir]))
+
+        # Lint the jobs from the running Jenkins
+        success = True
+        try:
+            output = subprocess.check_output(
+                ['jenkins-job-linter'] + config_args
+                + ['lint-jenkins', '--jenkins-url', url,
+                '--jenkins-username', 'admin',
+                '--jenkins-password', password],
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as exc:
+            output = exc.output
+            success = False
+        return success, output.decode('utf-8')
+
+    def run_test(self, tmpdir, config):
+        try:
+            return self._run_test_without_cleanup(tmpdir, config)
         finally:
-            if container_id is not None:
-                check_docker_output(['kill', container_id])
+            if self.container_id is not None:
+                self.check_docker_output(['kill', self.container_id])
 
 
 class DirectRunner(IntegrationTestRunner):
