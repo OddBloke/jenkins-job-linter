@@ -13,6 +13,7 @@
 # limitations under the License.
 import configparser
 import os
+from xml.etree import ElementTree
 
 import pytest
 from click.testing import CliRunner
@@ -239,6 +240,75 @@ class TestLintJobsFromDirectory:
         lint_jobs_from_directory('dir', mocker.MagicMock())
         passed_ctx = lint_job_xml_mock.call_args[0][0]
         assert listdir_mock.return_value == passed_ctx.object_names
+
+
+class TestLintJobsFromRunningJenkins:
+
+    def test_parameters_passed_through_to_jenkins(self, mocker):
+        jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
+        url, username, password = 'url', 'username', 'password'
+
+        lint_jobs_from_running_jenkins(
+            url, username, password, mocker.MagicMock())
+
+        assert 1 == jenkins_mock.call_count
+        assert mocker.call(url, username=username,
+                           password=password) == jenkins_mock.call_args
+
+    def test_empty_jenkins(self, mocker):
+        jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
+        jenkins_mock.return_value.get_jobs.return_value = []
+
+        assert lint_jobs_from_running_jenkins(
+            'url', 'username', 'password', mocker.MagicMock())
+
+    def test_context_job_name_and_tree_passed_to_lint_job_xml(self, mocker):
+        job_names = ['a job', 'another job']
+        jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
+        jenkins_mock.return_value.get_jobs.return_value = [
+            {'name': name} for name in job_names]
+        et_mock = mocker.patch('jenkins_job_linter.ElementTree')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+        runcontext_mock = mocker.patch('jenkins_job_linter.RunContext')
+
+        lint_jobs_from_running_jenkins(
+            'url', 'username', 'password', mocker.MagicMock())
+
+        assert len(job_names) == lint_job_xml_mock.call_count
+        for job_name in job_names:
+            assert (
+                mocker.call(runcontext_mock.return_value, job_name,
+                            et_mock.ElementTree.return_value, mocker.ANY)
+                in lint_job_xml_mock.call_args_list)
+
+    def test_job_xml_parsed_and_passed(self, mocker):
+        job_names = ['a job']
+        jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
+        jenkins_mock.return_value.get_jobs.return_value = [
+            {'name': name} for name in job_names]
+        xml_string = b'<element />'
+        jenkins_mock.return_value.get_job_config.return_value = xml_string
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+
+        lint_jobs_from_running_jenkins(
+            'url', 'username', 'password', mocker.MagicMock())
+
+        element_tree = lint_job_xml_mock.call_args[0][2]
+        assert xml_string == ElementTree.tostring(element_tree.getroot())
+
+    def test_returned_job_list_used_as_object_list(self, mocker):
+        job_names = ['a job', 'another job']
+        jenkins_mock = mocker.patch('jenkins_job_linter.jenkins.Jenkins')
+        jenkins_mock.return_value.get_jobs.return_value = [
+            {'name': name} for name in job_names]
+        et_mock = mocker.patch('jenkins_job_linter.ElementTree')
+        lint_job_xml_mock = mocker.patch('jenkins_job_linter.lint_job_xml')
+
+        lint_jobs_from_running_jenkins(
+            'url', 'username', 'password', mocker.MagicMock())
+
+        passed_ctx = lint_job_xml_mock.call_args[0][0]
+        assert job_names == passed_ctx.object_names
 
 
 class TestLintDirectory:
