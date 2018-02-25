@@ -62,9 +62,9 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     return success
 
 
-def lint_jobs_from_running_jenkins(config: ConfigParser, jenkins_url: str,
-                                   jenkins_username: str,
-                                   jenkins_password: str) -> bool:
+def lint_jobs_from_running_jenkins(jenkins_url: str, jenkins_username: str,
+                                   jenkins_password: str,
+                                   config: ConfigParser) -> bool:
     """Load jobs from a running Jenkins and run linters against each one."""
     config = _filter_config(config)
     server = jenkins.Jenkins(
@@ -115,8 +115,8 @@ def lint_directory(ctx: click.Context, compiled_job_directory: str) -> None:
 def lint_jenkins(ctx: click.Context, jenkins_url: str, jenkins_username: str,
                  jenkins_password: str) -> None:
     """Lint all the jobs in a running Jenkins."""
-    result = lint_jobs_from_running_jenkins(ctx.obj, jenkins_url,
-                                            jenkins_username, jenkins_password)
+    result = lint_jobs_from_running_jenkins(jenkins_url, jenkins_username,
+                                            jenkins_password, ctx.obj)
     if not result:
         sys.exit(1)
     sys.exit(0)
