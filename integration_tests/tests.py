@@ -155,6 +155,10 @@ def _jjb_subcommand_runner(tmpdir, config):
     'jjb_subcommand',
 ])
 def runner(request):
+    runners_to_skip = request.getfixturevalue(
+        'integration_testcase').runners_to_skip
+    if runners_to_skip and request.param in runners_to_skip:
+        pytest.skip('unsupported runner')
     runner_funcs = {
         'actual_jenkins': _actual_jenkins_runner,
         'direct': _direct_runner,
@@ -172,7 +176,8 @@ def test_integration(runner, tmpdir, integration_testcase):
 
 IntegrationTestcase = namedtuple(
     'IntegrationTestcase',
-    ['test_name', 'jobs_yaml', 'expected_output', 'expect_success', 'config'])
+    ['test_name', 'jobs_yaml', 'expected_output', 'expect_success', 'config',
+     'runners_to_skip'])
 
 
 def _get_case_item(key, case_dict, defaults, required=True):
@@ -193,6 +198,7 @@ def _parse_case(case_dict, defaults):
         _get_case_item('expected_output', case_dict, defaults),
         _get_case_item('expect_success', case_dict, defaults),
         _get_case_item('config', case_dict, defaults, required=False),
+        _get_case_item('runners_to_skip', case_dict, defaults, required=False),
     )
 
 
