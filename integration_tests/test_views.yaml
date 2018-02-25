@@ -20,6 +20,8 @@ cases:
               view-type: pipeline
       expected_output: ""
       expect_success: True
+      runners_to_skip:
+          - actual_jenkins  # Jenkins rejects the generated config with a 500
 
     - name: test_list_view_with_no_columns_causes_error
       description: |
@@ -32,3 +34,5 @@ cases:
       expected_output: |
           test-view: checking column configuration: FAIL: No columns configured
       expect_success: False
+      runners_to_skip:
+          - actual_jenkins  # Jenkins rejects the generated config with a 500

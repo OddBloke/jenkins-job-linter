@@ -20,6 +20,7 @@ from typing import Optional, cast
 from xml.etree import ElementTree
 
 import click
+import jenkins
 
 from jenkins_job_linter.config import _filter_config, GetListConfigParser
 from jenkins_job_linter.linters import LINTERS
@@ -61,6 +62,24 @@ def lint_jobs_from_directory(compiled_job_directory: str,
     return success
 
 
+def lint_jobs_from_running_jenkins(jenkins_url: str, jenkins_username: str,
+                                   jenkins_password: str,
+                                   config: ConfigParser) -> bool:
+    """Load jobs from a running Jenkins and run linters against each one."""
+    config = _filter_config(config)
+    server = jenkins.Jenkins(
+        jenkins_url, username=jenkins_username, password=jenkins_password)
+    success = True
+    job_names = [j['name'] for j in server.get_jobs()]
+    for job_name in job_names:
+        job_xml = server.get_job_config(job_name)
+        element_tree = ElementTree.ElementTree(ElementTree.fromstring(job_xml))
+        result = lint_job_xml(RunContext(job_names), job_name,
+                              element_tree, config)
+        success = success and result
+    return success
+
+
 @click.group()
 @click.option('--conf', type=click.Path(exists=True, dir_okay=False))
 @click.pass_context
@@ -83,6 +102,21 @@ main = cast(click.Group, main)
 def lint_directory(ctx: click.Context, compiled_job_directory: str) -> None:
     """Take a directory of Jenkins job XML and run some checks against it."""
     result = lint_jobs_from_directory(compiled_job_directory, ctx.obj)
+    if not result:
+        sys.exit(1)
+    sys.exit(0)
+
+
+@main.command(name='lint-jenkins')
+@click.option('--jenkins-url', required=True)
+@click.option('--jenkins-username', required=True)
+@click.option('--jenkins-password', required=True)
+@click.pass_context
+def lint_jenkins(ctx: click.Context, jenkins_url: str, jenkins_username: str,
+                 jenkins_password: str) -> None:
+    """Lint all the jobs in a running Jenkins."""
+    result = lint_jobs_from_running_jenkins(jenkins_url, jenkins_username,
+                                            jenkins_password, ctx.obj)
     if not result:
         sys.exit(1)
     sys.exit(0)
