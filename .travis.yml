@@ -30,8 +30,8 @@ matrix:
 
 install:
  - pip install codecov tox
- - docker pull jenkins/jenkins
 
 script:
+ - case $TOX_ENV in integration_tests*-docker) docker pull jenkins/jenkins ;; esac
  - tox -e $TOX_ENV -- $EXTRA_ARGS
  - if [ -n "$CODECOV" ]; then codecov --flags $CODECOV; fi
