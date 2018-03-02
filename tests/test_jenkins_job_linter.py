@@ -416,6 +416,23 @@ class TestLintJenkins:
         assert mocker.call(
             url, username, password, mocker.ANY) == lint_jobs_mock.call_args
 
+    def test_envvars_passed_through(self, mocker, monkeypatch):
+        runner = CliRunner()
+        lint_jobs_mock = mocker.patch(
+            'jenkins_job_linter.lint_jobs_from_running_jenkins')
+
+        url, username, password = 'url', 'username', 'password'
+        monkeypatch.setenv('JENKINS_URL', url)
+        monkeypatch.setenv('JENKINS_USERNAME', username)
+        monkeypatch.setenv('JENKINS_PASSWORD', password)
+
+        with runner.isolated_filesystem():
+            runner.invoke(main, ['lint-jenkins'])
+
+        assert 1 == lint_jobs_mock.call_count
+        assert mocker.call(
+            url, username, password, mocker.ANY) == lint_jobs_mock.call_args
+
     def test_config_parsed_and_passed(self, mocker):
         runner = CliRunner()
         lint_jobs_mock = mocker.patch(
