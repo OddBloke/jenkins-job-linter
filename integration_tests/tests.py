@@ -115,6 +115,9 @@ class ActualJenkinsRunner(IntegrationTestRunner):
                '--jenkins-password', password])
 
     def run_test(self, tmpdir, config):
+        if not subprocess.call(['which', 'docker']) == 0:
+            pytest.fail(
+                'Docker not installed, but is required for integration tests')
         try:
             return self._run_test_without_cleanup(tmpdir, config)
         finally:
