@@ -108,9 +108,12 @@ def lint_directory(ctx: click.Context, compiled_job_directory: str) -> None:
 
 
 @main.command(name='lint-jenkins')
-@click.option('--jenkins-url', required=True)
-@click.option('--jenkins-username', required=True)
-@click.option('--jenkins-password', required=True)
+@click.option('--jenkins-url', required=True,
+              help='The URL of the running Jenkins to connect to.')
+@click.option('--jenkins-username', required=True,
+              help='The Jenkins username to connect with.')
+@click.option('--jenkins-password', required=True,
+              help='The password of the Jenkins user.')
 @click.pass_context
 def lint_jenkins(ctx: click.Context, jenkins_url: str, jenkins_username: str,
                  jenkins_password: str) -> None:
