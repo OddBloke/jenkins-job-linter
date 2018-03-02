@@ -61,8 +61,9 @@ class IntegrationTestRunner:
 
 class ActualJenkinsRunner(IntegrationTestRunner):
 
-    def __init__(self):
+    def __init__(self, image_name):
         self.container_id = None
+        self.image_name = image_name
 
     def check_docker_output(self, args):
         return subprocess.check_output(
@@ -82,7 +83,7 @@ class ActualJenkinsRunner(IntegrationTestRunner):
     def _run_test_without_cleanup(self, tmpdir, config):
         # Set up Jenkins running in a Docker container
         self.container_id = self.check_docker_output(
-            ['run', '-d', 'jenkins/jenkins'])
+            ['run', '-d', self.image_name])
         inspect_output = json.loads(
             self.check_docker_output(['inspect', self.container_id]))
         url = 'http://{}:8080'.format(
@@ -163,7 +164,8 @@ def runner(request):
     if runners_to_skip and request.param in runners_to_skip:
         pytest.skip('unsupported runner')
     runner_funcs = {
-        'actual_jenkins': ActualJenkinsRunner(),
+        'actual_jenkins': ActualJenkinsRunner(
+            request.session.config.getvalue('jenkins_docker')),
         'direct': DirectRunner(),
         'jjb_subcommand': JJBSubcommandRunner(),
     }
