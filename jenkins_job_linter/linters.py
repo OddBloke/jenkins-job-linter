@@ -169,12 +169,14 @@ class CheckJobReferences(JobLinter):
         """Check referenced jobs against RunContext.object_names."""
         project_nodes = self._ctx.tree.findall(self._xpath)
         for node in project_nodes:
-            project = node.text
-            if project is None:
+            projects = node.text
+            if projects is None:
                 return LintResult.FAIL, 'No reference configured'
-            if project not in self._ctx.run_ctx.object_names:
-                return (LintResult.FAIL,
-                        'Reference to missing object {}'.format(project))
+            for project in projects.split(','):
+                project = project.strip()
+                if project not in self._ctx.run_ctx.object_names:
+                    return (LintResult.FAIL,
+                            'Reference to missing object {}'.format(project))
         return LintResult.PASS, None
 
 
