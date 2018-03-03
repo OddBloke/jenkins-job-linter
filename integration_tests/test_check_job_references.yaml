@@ -17,6 +17,38 @@ cases:
       expected_output: ""
       expect_success: True
 
+    - name: test_check_job_references_passes_with_csv
+      description: |
+          Test that valid comma-separated job references don't cause failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+          - job:
+              name: second-test-job
+          - job:
+              name: other-test-job
+              builders:
+                  - trigger-builds:
+                      - project: test-job,second-test-job
+      expected_output: ""
+      expect_success: True
+
+    - name: test_check_job_references_passes_with_space_separated_csv
+      description: |
+          Test that valid comma-separated job references don't cause failure
+      jobs.yaml: |
+          - job:
+              name: test-job
+          - job:
+              name: second-test-job
+          - job:
+              name: other-test-job
+              builders:
+                  - trigger-builds:
+                      - project: test-job, second-test-job
+      expected_output: ""
+      expect_success: True
+
     - name: test_missing_trigger_builds_builder_target_errors
       description: |
           Test that a missing trigger-builds builder target errors out
@@ -26,6 +58,36 @@ cases:
               builders:
                   - trigger-builds:
                       - project: missing-job
+      expected_output: |
+          test-job: checking job references: FAIL: Reference to missing object missing-job
+      expect_success: False
+
+    - name: test_missing_trigger_builds_builder_target_errors_with_csv
+      description: |
+          Test that a missing comma-separated trigger-builds builder target errors out
+      jobs.yaml: |
+          - job:
+              name: existent-job
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project: missing-job,existent-job
+      expected_output: |
+          test-job: checking job references: FAIL: Reference to missing object missing-job
+      expect_success: False
+
+    - name: test_missing_trigger_builds_builder_target_errors_with_space_separated_csv
+      description: |
+          Test that a missing comma-separated trigger-builds builder target errors out
+      jobs.yaml: |
+          - job:
+              name: existent-job
+          - job:
+              name: test-job
+              builders:
+                  - trigger-builds:
+                      - project: missing-job, existent-job
       expected_output: |
           test-job: checking job references: FAIL: Reference to missing object missing-job
       expect_success: False

@@ -215,9 +215,13 @@ class TestCheckJobReferences:
         (LintResult.PASS, ['existent-project'], ['existent-project']),
         (LintResult.PASS, ['one', 'two'], ['one', 'two']),
         (LintResult.PASS, ['one', 'two'], ['zero', 'one', 'two', 'three']),
+        (LintResult.PASS, ['one,two'], ['zero', 'one', 'two', 'three']),
+        (LintResult.PASS, ['one, two'], ['zero', 'one', 'two', 'three']),
         (LintResult.FAIL, ['non-existent-project'], ['existent-project']),
         (LintResult.FAIL, ['exists', 'doesnt'], ['exists']),
         (LintResult.FAIL, ['doesnt', 'exists'], ['exists']),
+        (LintResult.FAIL, ['doesnt,exists'], ['exists']),
+        (LintResult.FAIL, ['doesnt, exists'], ['exists']),
     ))
     def test_linter(self, expected, configured_projects, object_names):
         configs = ''.join(self._config_template.format(project)
