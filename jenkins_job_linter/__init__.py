@@ -16,7 +16,7 @@
 import os
 import sys
 from configparser import ConfigParser
-from typing import Optional, cast
+from typing import Optional
 from xml.etree import ElementTree
 
 import click
@@ -89,10 +89,6 @@ def main(ctx: click.Context, conf: Optional[str] = None) -> None:
     if conf is not None:
         config.read(conf)
     ctx.obj = config
-
-
-# Required until https://github.com/python/typeshed/issues/1918 is fixed
-main = cast(click.Group, main)
 
 
 @main.command(name='lint-directory')
