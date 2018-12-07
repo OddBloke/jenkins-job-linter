@@ -40,21 +40,22 @@ def _elementtree_from_str(xml_string: str) -> ElementTree.ElementTree:
     return ElementTree.ElementTree(ElementTree.fromstring(xml_string))
 
 
+@pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
 class ShellTest:
 
     _xml_template = '''\
-        <project>
+        <{root_tag}>
             <builders>
                 {builders}
             </builders>
-        </project>'''
+        </{root_tag}>'''
 
     _shell_builder_template = '''\
         <hudson.tasks.Shell>
             <command>{shell_script}</command>
         </hudson.tasks.Shell>'''
 
-    def test_non_project_skipped(self):
+    def test_non_project_skipped(self, root_tag):
         tree = _elementtree_from_str('<not_project/>')
         linter = CheckForEmptyShell(LintContext({}, None, tree))
         result, text = linter.check()
@@ -75,8 +76,9 @@ class TestCheckShebang(ShellTest):
         [(LintResult.PASS, '#!/bin/sh -{}'.format(''.join(args)))
          for args in PASSING_SHEBANG_ARGS]
     )
-    def test_project_with_shell(self, expected, shell_string):
+    def test_project_with_shell(self, root_tag, expected, shell_string):
         xml_string = self._xml_template.format(
+            root_tag=root_tag,
             builders=self._shell_builder_template.format(
                 shell_script=shell_string))
         tree = _elementtree_from_str(xml_string)
@@ -85,8 +87,8 @@ class TestCheckShebang(ShellTest):
         result, _ = linter.check()
         assert result is expected
 
-    def test_project_with_no_shell_part_skipped(self):
-        tree = _elementtree_from_str('<project/>')
+    def test_project_with_no_shell_part_skipped(self, root_tag):
+        tree = _elementtree_from_str('<{}/>'.format(root_tag))
         linter = CheckShebang(LintContext({}, None, tree))
         result, _ = linter.actual_check()
         assert result is LintResult.SKIP
@@ -96,20 +98,21 @@ class TestCheckShebang(ShellTest):
         (LintResult.FAIL, ('#!/bin/sh -eux', '#!/bin/sh')),
         (LintResult.FAIL, ('#!/bin/sh', '#!/bin/sh -eux'))
     ))
-    def test_multiple_shell_parts(self, expected, shebangs):
+    def test_multiple_shell_parts(self, root_tag, expected, shebangs):
         builders = ''.join(
             self._shell_builder_template.format(shell_script=shebang)
             for shebang in shebangs)
         tree = _elementtree_from_str(self._xml_template.format(
-            builders=builders))
+            root_tag=root_tag, builders=builders))
         linter = CheckShebang(
             LintContext(get_config()['job_linter:check_shebang'], None, tree))
         result, _ = linter.check()
         assert result is expected
 
-    def test_allow_default_shebang_false(self):
+    def test_allow_default_shebang_false(self, root_tag):
         tree = _elementtree_from_str(
             self._xml_template.format(
+                root_tag=root_tag,
                 builders=self._shell_builder_template.format(
                     shell_script='just some code')))
         config = configparser.ConfigParser()
@@ -129,8 +132,10 @@ class TestCheckShebang(ShellTest):
         (LintResult.PASS, 'ex', '#!/bin/sh -xe'),
         (LintResult.PASS, 'ex', '#!/bin/sh -xeu'),
     ])
-    def test_required_shell_options(self, expected, required, shell_string):
+    def test_required_shell_options(
+            self, root_tag, expected, required, shell_string):
         xml_string = self._xml_template.format(
+            root_tag=root_tag,
             builders=self._shell_builder_template.format(
                 shell_script=shell_string))
         config = configparser.ConfigParser()
@@ -147,9 +152,10 @@ class TestCheckForEmptyShell(ShellTest):
 
     @pytest.mark.parametrize('expected,script', (
         (LintResult.FAIL, ''), (LintResult.PASS, '...')))
-    def test_linter(self, expected, script):
+    def test_linter(self, root_tag, expected, script):
         tree = _elementtree_from_str(
             self._xml_template.format(
+                root_tag=root_tag,
                 builders=self._shell_builder_template.format(
                     shell_script=script)))
         linter = CheckForEmptyShell(LintContext({}, None, tree))
@@ -159,17 +165,18 @@ class TestCheckForEmptyShell(ShellTest):
 
 class TestEnsureTimestamps:
 
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
     @pytest.mark.parametrize('expected,xml_string', (
-        (LintResult.SKIP, '<not_a_project/>'),
-        (LintResult.FAIL, '<project/>'),
+        (LintResult.SKIP, '<not_a_{root_tag}/>'),
+        (LintResult.FAIL, '<{root_tag}/>'),
         (LintResult.PASS, '''\
-            <project>
+            <{root_tag}>
                 <buildWrappers>
                     <hudson.plugins.timestamper.TimestamperBuildWrapper />
                 </buildWrappers>
-            </project>''')))
-    def test_linter(self, expected, xml_string):
-        tree = _elementtree_from_str(xml_string)
+            </{root_tag}>''')))
+    def test_linter(self, root_tag, expected, xml_string):
+        tree = _elementtree_from_str(xml_string.format(root_tag=root_tag))
         linter = EnsureTimestamps(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
@@ -177,17 +184,18 @@ class TestEnsureTimestamps:
 
 class TestEnsureWorkspaceCleanup:
 
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
     @pytest.mark.parametrize('expected,xml_string', (
-        (LintResult.SKIP, '<not_a_project/>'),
-        (LintResult.FAIL, '<project/>'),
+        (LintResult.SKIP, '<not_a_{root_tag}/>'),
+        (LintResult.FAIL, '<{root_tag}/>'),
         (LintResult.PASS, '''\
-            <project>
+            <{root_tag}>
                 <buildWrappers>
                     <hudson.plugins.ws__cleanup.PreBuildCleanup />
                 </buildWrappers>
-            </project>''')))
-    def test_linter(self, expected, xml_string):
-        tree = _elementtree_from_str(xml_string)
+            </{root_tag}>''')))
+    def test_linter(self, root_tag, expected, xml_string):
+        tree = _elementtree_from_str(xml_string.format(root_tag=root_tag))
         linter = EnsureWorkspaceCleanup(LintContext({}, None, tree))
         result, _ = linter.check()
         assert result is expected
@@ -196,21 +204,22 @@ class TestEnsureWorkspaceCleanup:
 class TestCheckJobReferences:
 
     _trigger_builder_template = """\
-<project>
+<{root_tag}>
     <builders>
         <hudson.plugins.parameterizedtrigger.TriggerBuilder>
             <configs>
-                {}
+                {configs}
             </configs>
         </hudson.plugins.parameterizedtrigger.TriggerBuilder>
     </builders>
-</project>"""
+</{root_tag}>"""
 
     _config_template = """\
 <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
     <projects>{}</projects>
 </hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
 
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
     @pytest.mark.parametrize('expected,configured_projects,object_names', (
         (LintResult.PASS, ['existent-project'], ['existent-project']),
         (LintResult.PASS, ['one', 'two'], ['one', 'two']),
@@ -223,23 +232,27 @@ class TestCheckJobReferences:
         (LintResult.FAIL, ['doesnt,exists'], ['exists']),
         (LintResult.FAIL, ['doesnt, exists'], ['exists']),
     ))
-    def test_linter(self, expected, configured_projects, object_names):
+    def test_linter(
+            self, root_tag, expected, configured_projects, object_names):
         configs = ''.join(self._config_template.format(project)
                           for project in configured_projects)
         tree = _elementtree_from_str(
-            self._trigger_builder_template.format(configs))
+            self._trigger_builder_template.format(configs=configs,
+                                                  root_tag=root_tag))
         linter = CheckJobReferences(
             LintContext({}, RunContext(object_names), tree))
         result, _ = linter.check()
         assert result is expected
 
-    def test_completely_empty_projects_node(self):
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
+    def test_completely_empty_projects_node(self, root_tag):
         config = """\
 <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
     <projects/>
 </hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>"""
         tree = _elementtree_from_str(
-            self._trigger_builder_template.format(config))
+            self._trigger_builder_template.format(configs=config,
+                                                  root_tag=root_tag))
         linter = CheckJobReferences(
             LintContext({}, RunContext(['object']), tree))
         result, _ = linter.check()
@@ -251,6 +264,7 @@ class TestCheckColumnConfiguration:
     @pytest.mark.parametrize('expected,xml_string', (
         (LintResult.SKIP, '<not_a_view/>'),
         (LintResult.SKIP, '<project/>'),
+        (LintResult.SKIP, '<matrix-project/>'),
         (LintResult.PASS, '''\
             <hudson.model.ListView>
                 <columns>
@@ -271,23 +285,24 @@ class TestCheckColumnConfiguration:
 class TestCheckEnvInject:
 
     _template = '''\
-<project>
+<{root_tag}>
   <properties>
     <EnvInjectJobProperty>
       <info>
-        <propertiesContent>{}</propertiesContent>
+        <propertiesContent>{properties_content}</propertiesContent>
       </info>
     </EnvInjectJobProperty>
   </properties>
-</project>'''
+</{root_tag}>'''
 
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
     @pytest.mark.parametrize('expected,required_environment_settings', (
         (LintResult.SKIP, ''),
         (LintResult.FAIL, 'SOME=thing'),
     ))
     def test_no_properties_configured(
-            self, expected, required_environment_settings):
-        tree = _elementtree_from_str('<project/>')
+            self, root_tag, expected, required_environment_settings):
+        tree = _elementtree_from_str('<{}/>'.format(root_tag))
         config = get_config()
         config['job_linter:check_env_inject'][
             'required_environment_settings'] = required_environment_settings
@@ -296,6 +311,7 @@ class TestCheckEnvInject:
         result, _ = linter.check()
         assert result is expected
 
+    @pytest.mark.parametrize('root_tag', ['project', 'matrix-project'])
     @pytest.mark.parametrize(
         'expected,properties_content,required_environment_settings', (
             (LintResult.FAIL, '', 'SOME=thing'),
@@ -308,9 +324,12 @@ class TestCheckEnvInject:
              'SOME=thing, LAST=thing'),
             (LintResult.FAIL, 'FIRST=thingSOME=thing', 'SOME=thing'),
         ))
-    def test_linter(
-            self, expected, properties_content, required_environment_settings):
-        tree = _elementtree_from_str(self._template.format(properties_content))
+    def test_linter(self, root_tag, expected, properties_content,
+                    required_environment_settings):
+        tree = _elementtree_from_str(self._template.format(
+            properties_content=properties_content,
+            root_tag=root_tag,
+        ))
         config = get_config()
         config['job_linter:check_env_inject'][
             'required_environment_settings'] = required_environment_settings
@@ -325,13 +344,14 @@ class TestLinter:
     class LintTestSubclass(Linter):
 
         description = 'test description'
-        root_tag = 'test_tag'
+        root_tags = ['test_tag', 'other_tag']
 
         def actual_check(self):
             return self._ctx.config['_mock_result']
 
-    def test_check_and_text_passed_through(self, mocker):
-        tree = _elementtree_from_str('<test_tag/>')
+    @pytest.mark.parametrize('root_tag', ['test_tag', 'other_tag'])
+    def test_check_and_text_passed_through(self, mocker, root_tag):
+        tree = _elementtree_from_str('<{}/>'.format(root_tag))
         mock_result = mocker.sentinel.result, mocker.sentinel.text
         linter = self.LintTestSubclass(
             LintContext({'_mock_result': mock_result}, None, tree))

@@ -57,7 +57,7 @@ class Linter:
 
     def check(self) -> LintCheckResult:
         """Check the root tag of the object and call actual_check."""
-        if self._ctx.tree.getroot().tag != self.root_tag:
+        if self._ctx.tree.getroot().tag not in self.root_tags:
             return LintResult.SKIP, None
         return self.actual_check()
 
@@ -67,21 +67,21 @@ class Linter:
         raise NotImplementedError  # pragma: nocover
 
     @property
-    def root_tag(self) -> str:
-        """XML tag name that this linter operates against."""
+    def root_tags(self) -> str:
+        """XML tag names that this linter operates against."""
         raise NotImplementedError  # pragma: nocover
 
 
 class JobLinter(Linter):
     """A Linter that should operate against Jenkins job objects."""
 
-    root_tag = 'project'
+    root_tags = ['project', 'matrix-project']
 
 
 class ListViewLinter(Linter):
     """A Linter that should operate against Jenkins list view objects."""
 
-    root_tag = 'hudson.model.ListView'
+    root_tags = ['hudson.model.ListView']
 
 
 class EnsureTimestamps(JobLinter):
