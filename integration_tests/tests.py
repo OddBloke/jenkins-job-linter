@@ -172,8 +172,21 @@ def runner(request):
     return runner_funcs[request.param]
 
 
-def test_integration(runner, tmpdir, integration_testcase):
-    tmpdir.join('jobs.yaml').write(integration_testcase.jobs_yaml)
+@pytest.mark.parametrize('project_type', [None, 'matrix'])
+def test_integration(runner, tmpdir, integration_testcase, project_type):
+    jobs_yaml = integration_testcase.jobs_yaml
+    if project_type is not None:
+        jobs_yaml_lines = jobs_yaml.splitlines()
+        for n, line in enumerate(jobs_yaml_lines):
+            if '- job:' in line:
+                break
+        else:
+            n = None
+        if n is not None:
+            jobs_yaml_lines.insert(
+                n + 1, '    project-type: {}'.format(project_type))
+        jobs_yaml = '\n'.join(jobs_yaml_lines)
+    tmpdir.join('jobs.yaml').write(jobs_yaml)
     success, output = runner.run_test(tmpdir, integration_testcase.config)
     assert integration_testcase.expected_output == output
     assert integration_testcase.expect_success == success
